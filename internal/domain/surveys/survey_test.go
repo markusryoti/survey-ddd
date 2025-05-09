@@ -1,10 +1,10 @@
-package domain_test
+package surveys_test
 
 import (
 	"testing"
 	"time"
 
-	"github.com/markusryoti/survey-ddd/internal/domain"
+	"github.com/markusryoti/survey-ddd/internal/domain/surveys"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,11 +12,11 @@ func TestNewSurvey(t *testing.T) {
 	t.Run("new survey is created and in draft state", func(t *testing.T) {
 		title := "a title"
 		description := "a description"
-		survey, err := domain.NewSurvey(title, &description)
+		survey, err := surveys.NewSurvey(title, &description)
 
 		assert.Nil(t, err)
 		assert.Equal(t, title, survey.Title)
-		assert.Equal(t, domain.Draft, survey.SurveyStatus)
+		assert.Equal(t, surveys.Draft, survey.SurveyStatus)
 	})
 
 	t.Run("can't add end time that is in the past", func(t *testing.T) {
@@ -33,12 +33,12 @@ func TestReleaseAndLock(t *testing.T) {
 		survey.SetMaxParticipants(3)
 
 		status := survey.Status()
-		assert.Equal(t, domain.Draft, status)
+		assert.Equal(t, surveys.Draft, status)
 
 		err := survey.Release(now())
 		assert.Nil(t, err)
 		status = survey.Status()
-		assert.Equal(t, domain.Released, status)
+		assert.Equal(t, surveys.Released, status)
 	})
 
 	t.Run("can't release if no max participants", func(t *testing.T) {
@@ -52,20 +52,34 @@ func TestReleaseAndLock(t *testing.T) {
 		survey.SetMaxParticipants(3)
 
 		status := survey.Status()
-		assert.Equal(t, domain.Draft, status)
+		assert.Equal(t, surveys.Draft, status)
 
 		err := survey.Release(now())
 		assert.Nil(t, err)
 		status = survey.Status()
-		assert.Equal(t, domain.Released, status)
+		assert.Equal(t, surveys.Released, status)
 
 		survey.Lock()
 		status = survey.Status()
-		assert.Equal(t, domain.Locked, status)
+		assert.Equal(t, surveys.Locked, status)
 	})
 }
 
 func TestSubmissions(t *testing.T) {
+	t.Run("validate incorrect multioption answer to single question", func(t *testing.T) {
+		survey := newSurvey()
+		option1 := surveys.NewQuestionOption("option 1")
+		option2 := surveys.NewQuestionOption("option 2")
+		question := surveys.NewQuestion("a guestion", "some stuff", []surveys.QuestionOption{
+			*option1, *option2,
+		}, false)
+
+		err := survey.ValidateResponse(question.Id, []surveys.QuestionOptionId{
+			option1.Id, option2.Id,
+		})
+		assert.NotNil(t, err)
+	})
+
 	t.Run("can't create too many submissions", func(t *testing.T) {
 		var err error
 
@@ -94,7 +108,7 @@ func TestSubmissions(t *testing.T) {
 		_ = survey.SubmissionReceived(now())
 
 		status := survey.Status()
-		assert.Equal(t, domain.Completed, status)
+		assert.Equal(t, surveys.Completed, status)
 	})
 
 	t.Run("can't create a submission if survey is in draft state", func(t *testing.T) {
@@ -135,9 +149,9 @@ func TestSubmissions(t *testing.T) {
 	})
 }
 
-func newSurvey() *domain.Survey {
+func newSurvey() *surveys.Survey {
 	description := "a description"
-	survey, _ := domain.NewSurvey("a title", &description)
+	survey, _ := surveys.NewSurvey("a title", &description)
 	survey.SetEndTime(now().Add(1 * time.Minute))
 	return survey
 }
