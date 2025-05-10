@@ -8,21 +8,21 @@ import (
 )
 
 type Repository[T core.Aggregate] interface {
+	Save(ctx context.Context, aggregate T) error
 	Get(ctx context.Context, id core.AggregateId) (T, error)
-	Save(ctx context.Context, aggregate T, events []core.Event) error
 }
 
 type EventStore interface {
-	AppendToStream(ctx context.Context, tx *sqlx.Tx, aggregateID core.AggregateId, events []core.Event, expectedVersion int) error
-	LoadStream(ctx context.Context, aggregateID core.AggregateId) ([]core.Event, error)
+	AppendToStream(ctx context.Context, tx *sqlx.Tx, aggregateID core.AggregateId, events []core.DomainEvent, expectedVersion int) error
+	LoadStream(ctx context.Context, aggregateID core.AggregateId) ([]core.DomainEvent, error)
 }
 
 type EventPublisher interface {
-	Publish(events []core.Event) error
+	Publish(events []core.DomainEvent) error
 	Close() error
 }
 
 type Outbox interface {
-	Publish(events []core.Event) error
+	Publish(events []core.DomainEvent) error
 	ProcessOutbox()
 }

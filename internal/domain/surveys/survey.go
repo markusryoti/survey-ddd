@@ -15,6 +15,15 @@ func NewSurveyId() SurveyId {
 	return SurveyId(uuid.New())
 }
 
+func SurveyIdFromString(s string) (SurveyId, error) {
+	id, err := uuid.Parse(s)
+	if err != nil {
+		return SurveyId{}, err
+	}
+
+	return SurveyId(id), nil
+}
+
 type Survey struct {
 	Id              SurveyId
 	Title           string
@@ -28,18 +37,19 @@ type Survey struct {
 	SubmissionTimes []time.Time
 
 	version           int
-	uncommittedEvents []core.Event
+	uncommittedEvents []core.DomainEvent
 }
 
 func (s Survey) ID() core.AggregateId {
 	return core.AggregateId(s.Id)
 }
 
-func (s Survey) GetUncommittedEvents() []core.Event {
+func (s Survey) GetUncommittedEvents() []core.DomainEvent {
 	return s.uncommittedEvents
 }
 
-func (s Survey) ClearUncommittedEvents() {
+func (s *Survey) ClearUncommittedEvents() {
+	s.uncommittedEvents = make([]core.DomainEvent, 0)
 }
 
 func (s *Survey) SetVersion(version int) {
@@ -235,7 +245,7 @@ func (s Survey) Status() SurveyStatus {
 	return s.SurveyStatus
 }
 
-func (s *Survey) ApplyEvent(event core.Event) {
+func (s *Survey) ApplyEvent(event core.DomainEvent) {
 	switch e := event.(type) {
 	case SurveyCreated:
 		s.Title = e.Title
@@ -261,7 +271,7 @@ func (s *Survey) ApplyEvent(event core.Event) {
 	}
 }
 
-func (s *Survey) addEvent(event core.Event) {
+func (s *Survey) addEvent(event core.DomainEvent) {
 	s.uncommittedEvents = append(s.uncommittedEvents, event)
 	s.ApplyEvent(event)
 }

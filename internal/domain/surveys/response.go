@@ -20,7 +20,7 @@ type SurveyResponse struct {
 	Status            ResponseStatus
 
 	version           int
-	uncommittedEvents []core.Event
+	uncommittedEvents []core.DomainEvent
 }
 
 type ResponseStatus string
@@ -71,7 +71,7 @@ func (s *SurveyResponse) Submit() {
 	})
 }
 
-func (s *SurveyResponse) ApplyEvent(event core.Event) {
+func (s *SurveyResponse) ApplyEvent(event core.DomainEvent) {
 	switch e := event.(type) {
 	case SurveyResponseCreated:
 		s.SurveyId = e.SurveyId
@@ -89,7 +89,7 @@ func (s *SurveyResponse) ApplyEvent(event core.Event) {
 	}
 }
 
-func (s *SurveyResponse) addEvent(event core.Event) {
+func (s *SurveyResponse) addEvent(event core.DomainEvent) {
 	s.uncommittedEvents = append(s.uncommittedEvents, event)
 	s.ApplyEvent(event)
 }

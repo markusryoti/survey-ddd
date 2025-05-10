@@ -25,7 +25,7 @@ func NewOutbox(db *sqlx.DB, publisher *Publisher) *Outbox {
 	}
 }
 
-func (o *Outbox) Publish(events []core.Event) error {
+func (o *Outbox) Publish(events []core.DomainEvent) error {
 	ctx := context.Background()
 	tx, err := o.db.BeginTxx(ctx, nil)
 	if err != nil {
@@ -90,7 +90,7 @@ func (o *Outbox) processPendingMessages() error {
 	defer rows.Close()
 
 	var processedIDs []int64
-	var eventsToPublish []core.Event
+	var eventsToPublish []core.DomainEvent
 
 	for rows.Next() {
 		var outboxMessage struct {
@@ -103,7 +103,7 @@ func (o *Outbox) processPendingMessages() error {
 			continue
 		}
 
-		var event core.Event
+		var event core.DomainEvent
 		switch outboxMessage.Type {
 		case "survey-created":
 			event = &surveys.SurveyCreated{}
