@@ -45,7 +45,6 @@ CREATE TABLE IF NOT EXISTS events (
     type VARCHAR(255) NOT NULL,
     payload JSONB NOT NULL,
     occurred_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    version INTEGER NOT NULL,
     CONSTRAINT unique_aggregate_version UNIQUE (aggregate_id, version)
 );
 

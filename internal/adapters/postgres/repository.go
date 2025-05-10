@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/markusryoti/survey-ddd/internal/core"
 )
 
@@ -22,66 +21,67 @@ func NewPostgresRepository[T core.Aggregate](db *sql.DB, tableName string, newAg
 }
 
 func (r *PostgresRepository[T]) Save(ctx context.Context, aggregate T) error {
+	var err error
+
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
+	defer func(cause error) {
+		if cause != nil {
+			tx.Rollback()
+		}
+	}(err)
+
 	data, err := json.Marshal(aggregate)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	_, err = tx.ExecContext(ctx,
-		fmt.Sprintf(`INSERT INTO %s (id, data, version, created_at) 
-                    VALUES ($1, $2, $3, $4) 
-                    ON CONFLICT (id) 
-                    DO UPDATE SET data = $2, version = $3`, r.tableName),
-		aggregate.ID(), data, aggregate.Version(), aggregate.CreatedAt(),
-	)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// save uncommitted events
-	for _, domainEvent := range aggregate.GetUncommittedEvents() {
-		event, err := core.NewEvent(domainEvent)
-		if err != nil {
-			return err
-		}
-
-		eventId := uuid.New()
+	if aggregate.Version() == 0 {
+		// New aggregate: INSERT
 		_, err = tx.ExecContext(ctx,
-			`INSERT INTO events (id, aggregate_id, type, payload, occurred_at) VALUES ($1, $2, $3, $4, $5)`,
-			eventId, domainEvent.AggregateId(), event.Type, event.Payload, event.OccurredAt)
+			fmt.Sprintf(`INSERT INTO %s (id, data, version, created_at)
+                         VALUES ($1, $2, $3, $4)`, r.tableName),
+			aggregate.ID(),
+			data,
+			1, // First version number is 1
+			aggregate.CreatedAt(),
+		)
 		if err != nil {
-			tx.Rollback()
-			return err
+			return fmt.Errorf("insert failed: %w", err)
+		}
+	} else {
+		// Existing aggregate: UPDATE with OCC
+		res, err := tx.ExecContext(ctx,
+			fmt.Sprintf(`UPDATE %s
+                         SET data = $1, version = $2
+                         WHERE id = $3 AND version = $4`, r.tableName),
+			data,
+			aggregate.Version(), // e.g., version 2
+			aggregate.ID(),
+			aggregate.Version()-1, // e.g., expecting version 1 in DB
+		)
+		if err != nil {
+			return fmt.Errorf("update failed: %w", err)
 		}
 
-		// insert into outbox
-		_, err = tx.ExecContext(ctx,
-			`INSERT INTO outbox (id, aggregate_id, type, payload, occurred_at, published) VALUES ($1, $2, $3, $4, $5, false)`,
-			event.ID, event.AggregateID, event.Type, event.Payload, event.OccurredAt)
+		rowsAffected, err := res.RowsAffected()
 		if err != nil {
-			tx.Rollback()
-			return err
+			return fmt.Errorf("rows affected error: %w", err)
+		}
+		if rowsAffected == 0 {
+			return errors.New("optimistic concurrency conflict: aggregate has been modified")
 		}
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
-	aggregate.ClearUncommittedEvents()
 	return nil
 }
 
 func (r *PostgresRepository[T]) Load(ctx context.Context, id core.AggregateId) (T, error) {
 	agg := r.newAggFunc()
+
 	var data []byte
 	err := r.db.QueryRowContext(ctx,
 		fmt.Sprintf(`SELECT data FROM %s WHERE id = $1`, r.tableName),
@@ -98,5 +98,6 @@ func (r *PostgresRepository[T]) Load(ctx context.Context, id core.AggregateId) (
 	if err != nil {
 		return agg, err
 	}
+
 	return agg, nil
 }

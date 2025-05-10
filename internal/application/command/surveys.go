@@ -1,8 +1,8 @@
-package surveys
+package command
 
 import (
 	"context"
-	"fmt"
+	"time"
 
 	"github.com/markusryoti/survey-ddd/internal/adapters/postgres"
 	"github.com/markusryoti/survey-ddd/internal/core"
@@ -21,27 +21,17 @@ func NewSurveyCommandHandler(
 	}
 }
 
-func (h *SurveyCommandHandler) Handle(ctx context.Context, command core.Command) error {
-	switch cmd := command.(type) {
-	case surveys.CreateSurveyCommand:
-		return h.handleCreateSurvey(ctx, cmd)
-	case surveys.SetMaxParticipantsCommand:
-		return h.handleSetMaxParticipants(ctx, cmd)
-	default:
-		return fmt.Errorf("unknown command type: %s", cmd.Type())
-	}
-}
-
-func (h *SurveyCommandHandler) handleCreateSurvey(ctx context.Context, cmd surveys.CreateSurveyCommand) error {
+func (h *SurveyCommandHandler) HandleCreateSurvey(ctx context.Context, cmd surveys.CreateSurveyCommand) (*surveys.Survey, error) {
 	s, err := surveys.NewSurvey(cmd.Title, cmd.Description)
 	if err != nil {
-		return err
+		return s, err
 	}
 
-	return h.repo.Save(ctx, s)
+	err = h.repo.Save(ctx, s)
+	return s, err
 }
 
-func (h *SurveyCommandHandler) handleSetMaxParticipants(ctx context.Context, cmd surveys.SetMaxParticipantsCommand) error {
+func (h *SurveyCommandHandler) HandleSetMaxParticipants(ctx context.Context, cmd surveys.SetMaxParticipantsCommand) error {
 	surveyId, err := surveys.SurveyIdFromString(cmd.SurveyId)
 
 	survey, err := h.repo.Load(ctx, core.AggregateId(surveyId))
@@ -52,4 +42,16 @@ func (h *SurveyCommandHandler) handleSetMaxParticipants(ctx context.Context, cmd
 	survey.SetMaxParticipants(cmd.MaxParticipants)
 
 	return h.repo.Save(ctx, survey)
+}
+
+type CreateSurveyCommand struct {
+	Title           string    `json:"title"`
+	Description     *string   `json:"description"`
+	MaxParticipants int       `json:"max_participants"`
+	EndTime         time.Time `json:"end_time"`
+	TenantID        string    `json:"tenant_id"`
+}
+
+func (c CreateSurveyCommand) Type() string {
+	return "CreateSurveyCommand"
 }

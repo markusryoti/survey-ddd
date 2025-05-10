@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 
@@ -67,5 +68,5 @@ type CommandBus interface {
 }
 
 type CommandHandler interface {
-	Handle(command Command) error
+	Handle(ctx context.Context, command Command) error
 }

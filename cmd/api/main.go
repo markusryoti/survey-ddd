@@ -1,17 +1,18 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"log"
+	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/markusryoti/survey-ddd/internal/adapters/postgres"
+	"github.com/markusryoti/survey-ddd/internal/adapters/rest"
+	"github.com/markusryoti/survey-ddd/internal/application/command"
 	"github.com/markusryoti/survey-ddd/internal/domain/surveys"
 )
 
 func main() {
-	ctx := context.TODO()
-
 	db, err := sql.Open("postgres", "postgres://survey:secret@db:5432/surveydb?sslmode=disable")
 	if err != nil {
 		log.Fatal(err)
@@ -20,18 +21,14 @@ func main() {
 		return &surveys.Survey{}
 	})
 
-	repo.Save(ctx, &surveys.Survey{})
+	surveyCommandHandler := command.NewSurveyCommandHandler(repo)
 
-	// conn, err := amqp.Dial("amqp://guest:guest@rabbitmq:5672/")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// ch, err := conn.Channel()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// publisher := &rabbitmq.Publisher{Channel: ch, Exchange: "survey_events"}
+	surveyHandler := rest.SurveyHandler{
+		CommandHandler: surveyCommandHandler,
+	}
 
-	log.Println("Survey service running...")
-	select {}
+	r := chi.NewRouter()
+	surveyHandler.RegisterRoutes(r)
+
+	http.ListenAndServe(":8080", r)
 }

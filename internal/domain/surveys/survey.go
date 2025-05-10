@@ -11,6 +11,10 @@ import (
 
 type SurveyId uuid.UUID
 
+func (s SurveyId) String() string {
+	return s.String()
+}
+
 func NewSurveyId() SurveyId {
 	return SurveyId(uuid.New())
 }

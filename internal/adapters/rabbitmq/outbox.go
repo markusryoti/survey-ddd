@@ -25,37 +25,6 @@ func NewOutbox(db *sqlx.DB, publisher *Publisher) *Outbox {
 	}
 }
 
-func (o *Outbox) Publish(events []core.DomainEvent) error {
-	ctx := context.Background()
-	tx, err := o.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction for outbox: %w", err)
-	}
-	defer tx.Rollback()
-
-	stmt, err := tx.PrepareContext(ctx, `
-		INSERT INTO outbox (aggregate_id, type, payload, occurred_at)
-		VALUES ($1, $2, $3, $4)
-	`)
-	if err != nil {
-		return fmt.Errorf("failed to prepare outbox insert statement: %w", err)
-	}
-	defer stmt.Close()
-
-	for _, event := range events {
-		payload, err := json.Marshal(event)
-		if err != nil {
-			return fmt.Errorf("failed to marshal event payload for outbox: %w", err)
-		}
-		_, err = stmt.ExecContext(ctx, event.AggregateId(), event.Type(), payload, event.Timestamp()) // Aggregate ID might be relevant here
-		if err != nil {
-			return fmt.Errorf("failed to insert event into outbox: %w", err)
-		}
-	}
-
-	return tx.Commit()
-}
-
 func (o *Outbox) ProcessOutbox() {
 	ticker := time.NewTicker(5 * time.Second) // Check every 5 seconds
 	defer ticker.Stop()
