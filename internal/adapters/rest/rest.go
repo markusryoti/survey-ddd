@@ -15,7 +15,16 @@ type SurveyHandler struct {
 }
 
 func (h SurveyHandler) RegisterRoutes(r chi.Router) {
+	r.Get("/", h.index)
 	r.Post("/surveys", h.CreateSurvey)
+}
+
+func (h SurveyHandler) index(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"hello": "world",
+	})
 }
 
 func (h SurveyHandler) CreateSurvey(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +53,7 @@ func (h SurveyHandler) CreateSurvey(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{
-		"survey_id": string(survey.Id.String()),
+		"survey_id": survey.Id.String(),
 	})
 }
 

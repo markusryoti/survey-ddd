@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	_ "github.com/lib/pq"
 	"github.com/markusryoti/survey-ddd/internal/adapters/postgres"
 	"github.com/markusryoti/survey-ddd/internal/adapters/rest"
 	"github.com/markusryoti/survey-ddd/internal/application/command"
@@ -17,9 +18,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	repo := postgres.NewPostgresRepository(db, "surveys", func() *surveys.Survey {
-		return &surveys.Survey{}
-	})
+	repo := postgres.NewPostgresRepository[*surveys.Survey](db, "surveys")
 
 	surveyCommandHandler := command.NewSurveyCommandHandler(repo)
 

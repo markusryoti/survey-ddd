@@ -34,7 +34,9 @@ func (h *SurveyCommandHandler) HandleCreateSurvey(ctx context.Context, cmd surve
 func (h *SurveyCommandHandler) HandleSetMaxParticipants(ctx context.Context, cmd surveys.SetMaxParticipantsCommand) error {
 	surveyId, err := surveys.SurveyIdFromString(cmd.SurveyId)
 
-	survey, err := h.repo.Load(ctx, core.AggregateId(surveyId))
+	survey := &surveys.Survey{}
+
+	err = h.repo.Load(ctx, core.AggregateId(surveyId), survey)
 	if err != nil {
 		return err
 	}

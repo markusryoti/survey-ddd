@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS events (
     type VARCHAR(255) NOT NULL,
     payload JSONB NOT NULL,
     occurred_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    version INTEGER NOT NULL,
     CONSTRAINT unique_aggregate_version UNIQUE (aggregate_id, version)
 );
 
@@ -57,7 +58,8 @@ CREATE TABLE IF NOT EXISTS outbox (
     aggregate_id UUID,
     type VARCHAR(255) NOT NULL,
     payload JSONB NOT NULL,
-    occurred_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    occurred_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_outbox_occurred_at ON outbox (occurred_at);

@@ -9,14 +9,16 @@ import (
 	"github.com/markusryoti/survey-ddd/internal/core"
 )
 
-type SurveyId uuid.UUID
+type SurveyId core.AggregateId
 
-func (s SurveyId) String() string {
-	return s.String()
-}
+// type SurveyId = core.TypedId[Survey]
 
 func NewSurveyId() SurveyId {
-	return SurveyId(uuid.New())
+	return SurveyId(core.NewAggregateId())
+}
+
+func (s SurveyId) String() string {
+	return core.AggregateId(s).String()
 }
 
 func SurveyIdFromString(s string) (SurveyId, error) {
@@ -25,7 +27,7 @@ func SurveyIdFromString(s string) (SurveyId, error) {
 		return SurveyId{}, err
 	}
 
-	return SurveyId(id), nil
+	return SurveyId(core.AggregateId(id)), nil
 }
 
 type Survey struct {
@@ -58,6 +60,10 @@ func (s *Survey) ClearUncommittedEvents() {
 
 func (s *Survey) SetVersion(version int) {
 	s.version = version
+}
+
+func (s *Survey) SetCreatedAt(t time.Time) {
+	s.TimeCreated = t
 }
 
 func (s Survey) Version() int {
@@ -252,6 +258,7 @@ func (s Survey) Status() SurveyStatus {
 func (s *Survey) ApplyEvent(event core.DomainEvent) {
 	switch e := event.(type) {
 	case SurveyCreated:
+		s.Id = e.Id
 		s.Title = e.Title
 		s.Description = e.Description
 		s.SurveyStatus = e.SurveyStatus

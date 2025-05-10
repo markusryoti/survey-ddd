@@ -10,10 +10,10 @@ services:
       POSTGRES_USER: survey
       POSTGRES_PASSWORD: secret
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
       - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U survey -d surveydb"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -31,6 +31,14 @@ services:
     depends_on:
       - db
       - rabbitmq
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "80:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: password
 
 volumes:
   db_data:
