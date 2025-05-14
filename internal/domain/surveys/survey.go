@@ -1,6 +1,7 @@
 package surveys
 
 import (
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"time"
@@ -11,14 +12,28 @@ import (
 
 type SurveyId core.AggregateId
 
-// type SurveyId = core.TypedId[Survey]
-
 func NewSurveyId() SurveyId {
 	return SurveyId(core.NewAggregateId())
 }
 
 func (s SurveyId) String() string {
 	return core.AggregateId(s).String()
+}
+
+func (id SurveyId) MarshalJSON() ([]byte, error) {
+	return core.AggregateId(id).MarshalJSON()
+}
+
+func (id *SurveyId) UnmarshalJSON(data []byte) error {
+	return (*core.AggregateId)(id).UnmarshalJSON(data)
+}
+
+func (id SurveyId) Value() (driver.Value, error) {
+	return core.AggregateId(id).Value()
+}
+
+func (id *SurveyId) Scan(value interface{}) error {
+	return (*core.AggregateId)(id).Scan(value)
 }
 
 func SurveyIdFromString(s string) (SurveyId, error) {

@@ -10,25 +10,35 @@ import (
 )
 
 type SurveyCommandHandler struct {
-	repo *postgres.PostgresRepository[*surveys.Survey]
+	repo                 *postgres.PostgresRepository[*surveys.Survey]
+	domainEventDipatcher *core.EventDispatcher
 }
 
 func NewSurveyCommandHandler(
 	repo *postgres.PostgresRepository[*surveys.Survey],
 ) *SurveyCommandHandler {
 	return &SurveyCommandHandler{
-		repo: repo,
+		repo:                 repo,
+		domainEventDipatcher: core.NewEventDispatcher(),
 	}
 }
 
 func (h *SurveyCommandHandler) HandleCreateSurvey(ctx context.Context, cmd surveys.CreateSurveyCommand) (*surveys.Survey, error) {
-	s, err := surveys.NewSurvey(cmd.Title, cmd.Description)
+	survey, err := surveys.NewSurvey(cmd.Title, cmd.Description)
 	if err != nil {
-		return s, err
+		return survey, err
 	}
 
-	err = h.repo.Save(ctx, s)
-	return s, err
+	err = h.repo.Save(ctx, survey)
+	if err != nil {
+		return survey, err
+	}
+
+	h.domainEventDipatcher.Dispatch(ctx, survey.GetUncommittedEvents()...)
+
+	survey.ClearUncommittedEvents()
+
+	return survey, err
 }
 
 func (h *SurveyCommandHandler) HandleSetMaxParticipants(ctx context.Context, cmd surveys.SetMaxParticipantsCommand) error {

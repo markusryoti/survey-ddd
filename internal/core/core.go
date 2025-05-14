@@ -78,45 +78,13 @@ type Aggregate interface {
 	CreatedAt() time.Time
 }
 
+type AggregateState[T any] struct {
+	Version int
+	Data    T
+}
+
 func NewAggregateId() AggregateId {
 	return AggregateId(uuid.New())
-}
-
-type TypedId[T any] struct {
-	IdValue AggregateId
-}
-
-func NewTypedId[T any]() TypedId[T] {
-	return TypedId[T]{IdValue: NewAggregateId()}
-}
-
-func (t TypedId[T]) String() string {
-	return t.IdValue.String()
-}
-
-func (t TypedId[T]) MarshalJSON() ([]byte, error) {
-	return json.Marshal(t.IdValue.String())
-}
-
-func (t *TypedId[T]) UnmarshalJSON(data []byte) error {
-	var s string
-	if err := json.Unmarshal(data, &s); err != nil {
-		return err
-	}
-	parsed, err := uuid.Parse(s)
-	if err != nil {
-		return err
-	}
-	t.IdValue = AggregateId(parsed)
-	return nil
-}
-
-func (t TypedId[T]) Value() (driver.Value, error) {
-	return t.IdValue.Value()
-}
-
-func (t *TypedId[T]) Scan(value interface{}) error {
-	return t.IdValue.Scan(value)
 }
 
 func NewEventId() EventId {

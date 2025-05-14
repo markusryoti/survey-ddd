@@ -124,8 +124,6 @@ func (r *PostgresRepository[T]) Save(ctx context.Context, aggregate T) error {
 		return err
 	}
 
-	aggregate.ClearUncommittedEvents()
-
 	return nil
 }
 
