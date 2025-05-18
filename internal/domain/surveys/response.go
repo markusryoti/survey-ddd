@@ -1,6 +1,7 @@
 package surveys
 
 import (
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"time"
@@ -9,18 +10,75 @@ import (
 	"github.com/markusryoti/survey-ddd/internal/core"
 )
 
-type SurveyResponseId uuid.UUID
+type SurveyResponseId core.AggregateId
+
+func (s SurveyResponseId) String() string {
+	return core.AggregateId(s).String()
+}
+
+func (id SurveyResponseId) MarshalJSON() ([]byte, error) {
+	return core.AggregateId(id).MarshalJSON()
+}
+
+func (id *SurveyResponseId) UnmarshalJSON(data []byte) error {
+	return (*core.AggregateId)(id).UnmarshalJSON(data)
+}
+
+func (id SurveyResponseId) Value() (driver.Value, error) {
+	return core.AggregateId(id).Value()
+}
+
+func (id *SurveyResponseId) Scan(value interface{}) error {
+	return (*core.AggregateId)(id).Scan(value)
+}
+
+func SurveyResponseIdFromString(s string) (SurveyId, error) {
+	id, err := uuid.Parse(s)
+	if err != nil {
+		return SurveyId{}, err
+	}
+
+	return SurveyId(core.AggregateId(id)), nil
+}
 
 type SurveyResponse struct {
 	Id                SurveyResponseId
 	SurveyId          SurveyId
 	NumberOfQuestions int
 	Responses         []QuestionResponse
-	CreatedAt         time.Time
+	TimeCreated       time.Time
 	Status            ResponseStatus
 
 	version           int
 	uncommittedEvents []core.DomainEvent
+}
+
+func (s SurveyResponse) ID() core.AggregateId {
+	return core.AggregateId(s.Id)
+}
+
+func (s SurveyResponse) GetUncommittedEvents() []core.DomainEvent {
+	return s.uncommittedEvents
+}
+
+func (s *SurveyResponse) ClearUncommittedEvents() {
+	s.uncommittedEvents = make([]core.DomainEvent, 0)
+}
+
+func (s *SurveyResponse) SetVersion(version int) {
+	s.version = version
+}
+
+func (s *SurveyResponse) SetCreatedAt(t time.Time) {
+	s.TimeCreated = t
+}
+
+func (s SurveyResponse) Version() int {
+	return s.version
+}
+
+func (s SurveyResponse) CreatedAt() time.Time {
+	return s.TimeCreated
 }
 
 type ResponseStatus string
@@ -76,7 +134,7 @@ func (s *SurveyResponse) ApplyEvent(event core.DomainEvent) {
 	case SurveyResponseCreated:
 		s.SurveyId = e.SurveyId
 		s.NumberOfQuestions = e.NumberOfQuestions
-		s.CreatedAt = e.CreatedAt
+		s.TimeCreated = e.CreatedAt
 	case QuestionAnswered:
 		s.Responses = append(s.Responses, QuestionResponse{
 			QuestionId: e.QuestionId,

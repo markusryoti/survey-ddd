@@ -30,7 +30,7 @@ func (id *AggregateId) UnmarshalJSON(data []byte) error {
 }
 
 func (id AggregateId) Value() (driver.Value, error) {
-	return uuid.UUID(id).String(), nil // Or: return []byte(uuid.UUID(id).String()), nil
+	return uuid.UUID(id).String(), nil
 }
 
 func (id *AggregateId) Scan(value interface{}) error {
@@ -76,11 +76,6 @@ type Aggregate interface {
 	SetCreatedAt(time.Time)
 	Version() int
 	CreatedAt() time.Time
-}
-
-type AggregateState[T any] struct {
-	Version int
-	Data    T
 }
 
 func NewAggregateId() AggregateId {

@@ -22,12 +22,20 @@ func NewPostgresRepository[T core.Aggregate](db *sql.DB, tableName string) *Post
 }
 
 func (r *PostgresRepository[T]) Save(ctx context.Context, aggregate T) error {
-	var err error
-
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
+
+	return r.save(ctx, tx, aggregate)
+}
+
+func (r *PostgresRepository[T]) SaveWithTx(ctx context.Context, tx *sql.Tx, aggregate T) error {
+	return r.save(ctx, tx, aggregate)
+}
+
+func (r *PostgresRepository[T]) save(ctx context.Context, tx *sql.Tx, aggregate T) error {
+	var err error
 
 	defer func(cause error) {
 		if cause != nil {
@@ -127,12 +135,37 @@ func (r *PostgresRepository[T]) Save(ctx context.Context, aggregate T) error {
 	return nil
 }
 
+func (r *PostgresRepository[T]) LoadWithTx(ctx context.Context, tx *sql.Tx, id core.AggregateId, agg core.Aggregate) error {
+	return r.load(ctx, tx, id, agg)
+}
+
 func (r *PostgresRepository[T]) Load(ctx context.Context, id core.AggregateId, agg core.Aggregate) error {
 	var data []byte
 	var version int
 	var createdAt time.Time
 
 	err := r.db.QueryRowContext(ctx,
+		fmt.Sprintf(`SELECT data, version, created_at FROM %s WHERE id = $1`, r.tableName),
+		id,
+	).Scan(&data, &version, &createdAt)
+
+	err = json.Unmarshal(data, agg)
+	if err != nil {
+		return err
+	}
+
+	agg.SetVersion(version)
+	agg.SetCreatedAt(createdAt)
+
+	return nil
+}
+
+func (r *PostgresRepository[T]) load(ctx context.Context, tx *sql.Tx, id core.AggregateId, agg core.Aggregate) error {
+	var data []byte
+	var version int
+	var createdAt time.Time
+
+	err := tx.QueryRowContext(ctx,
 		fmt.Sprintf(`SELECT data, version, created_at FROM %s WHERE id = $1`, r.tableName),
 		id,
 	).Scan(&data, &version, &createdAt)
