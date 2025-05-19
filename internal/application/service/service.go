@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/markusryoti/survey-ddd/internal/adapters/postgres"
 	"github.com/markusryoti/survey-ddd/internal/core"
@@ -35,13 +36,54 @@ func (s *SurveyService) newTx(ctx context.Context) (*sql.Tx, error) {
 }
 
 type ResponseToSurveyCmd struct {
+	SurveyId string
 }
 
 func (s *SurveyService) AddResponseToQuestion(ctx context.Context, cmd ResponseToSurveyCmd) error {
-	_, err := s.newTx(ctx)
+	var err error
+
+	tx, err := s.newTx(ctx)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	defer func() {
+		if err != nil {
+			err = tx.Rollback()
+			if err != nil {
+				panic("rollback failed")
+			}
+		}
+	}()
+
+	var survey surveys.Survey
+	surveyId, err := surveys.SurveyIdFromString(cmd.SurveyId)
+	if err != nil {
+		return err
+	}
+
+	response := surveys.NewSurveyResponse(surveyId)
+
+	err = s.surveyRepo.Load(ctx, core.AggregateId(surveyId), &survey)
+	if err != nil {
+		return err
+	}
+
+	err = survey.SubmissionReceived(time.Now())
+	if err != nil {
+		return err
+	}
+
+	err = s.responseRepo.Save(ctx, response)
+	if err != nil {
+		return err
+	}
+
+	err = s.surveyRepo.Save(ctx, &survey)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	return err
 }

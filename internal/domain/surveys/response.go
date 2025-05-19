@@ -93,15 +93,14 @@ type QuestionResponse struct {
 	Choices    []QuestionOptionId
 }
 
-func NewSurveyResponse(id SurveyId, numQuestions int) *SurveyResponse {
+func NewSurveyResponse(id SurveyId) *SurveyResponse {
 	now := time.Now()
 
 	response := &SurveyResponse{}
 
 	response.addEvent(SurveyResponseCreated{
-		SurveyId:          id,
-		NumberOfQuestions: numQuestions,
-		CreatedAt:         now,
+		SurveyId:  id,
+		CreatedAt: now,
 	})
 
 	return response

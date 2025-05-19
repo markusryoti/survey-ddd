@@ -16,7 +16,7 @@ func TestNewSurveyResponse(t *testing.T) {
 			*option1, *option2,
 		}, false)
 
-		response := surveys.NewSurveyResponse(survey.Id, 1)
+		response := surveys.NewSurveyResponse(survey.Id)
 		err := response.AddResponseToQuestion(question.Id,
 			[]surveys.QuestionOptionId{option1.Id},
 		)
@@ -36,7 +36,7 @@ func TestNewSurveyResponse(t *testing.T) {
 			*option1, *option2,
 		}, true)
 
-		response := surveys.NewSurveyResponse(survey.Id, 1)
+		response := surveys.NewSurveyResponse(survey.Id)
 		err := response.AddResponseToQuestion(question.Id, []surveys.QuestionOptionId{
 			option1.Id,
 		})
