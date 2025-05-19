@@ -10,11 +10,11 @@ import (
 )
 
 type SurveyCommandHandler struct {
-	repo                 *postgres.PostgresRepository[*surveys.Survey]
+	repo                 core.Repository[*surveys.Survey]
 	domainEventDipatcher *core.EventDispatcher
 }
 
-func NewSurveyCommandHandler(
+func NewSurveyCommandHandler[T core.Aggregate](
 	repo *postgres.PostgresRepository[*surveys.Survey],
 ) *SurveyCommandHandler {
 	return &SurveyCommandHandler{

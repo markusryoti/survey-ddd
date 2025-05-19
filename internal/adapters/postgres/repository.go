@@ -30,41 +30,7 @@ func (r *PostgresRepository[T]) Save(ctx context.Context, aggregate T) error {
 	return r.save(ctx, tx, aggregate)
 }
 
-type Transactional interface {
-	Begin(ctx context.Context) error
-	Commit() error
-	Rollback() error
-}
-
-type PostgresTx struct {
-	db *sql.DB
-	tx *sql.Tx
-}
-
-func (p *PostgresTx) Begin(ctx context.Context) error {
-	tx, err := p.db.BeginTx(ctx, &sql.TxOptions{})
-	if err != nil {
-		return err
-	}
-
-	p.tx = tx
-
-	return nil
-}
-
-func (p *PostgresTx) Commit() error {
-	return p.tx.Commit()
-}
-
-func (p *PostgresTx) Rollback() error {
-	return p.tx.Rollback()
-}
-
-func (p *PostgresTx) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
-	return p.tx.ExecContext(ctx, query, args)
-}
-
-func (r *PostgresRepository[T]) SaveWithTx(ctx context.Context, tx Transactional, aggregate T) error {
+func (r *PostgresRepository[T]) SaveWithTx(ctx context.Context, tx core.Transactional, aggregate T) error {
 	pgTx, ok := tx.(*PostgresTx)
 	if !ok {
 		return errors.New("couldn't convert to postgres tx")
@@ -174,7 +140,7 @@ func (r *PostgresRepository[T]) save(ctx context.Context, tx *sql.Tx, aggregate 
 	return nil
 }
 
-func (r *PostgresRepository[T]) LoadWithTx(ctx context.Context, tx Transactional, id core.AggregateId, agg core.Aggregate) error {
+func (r *PostgresRepository[T]) LoadWithTx(ctx context.Context, tx core.Transactional, id core.AggregateId, agg T) error {
 	pgTx, ok := tx.(*PostgresTx)
 	if !ok {
 		return errors.New("couldn't convert to postgres tx")
@@ -182,7 +148,7 @@ func (r *PostgresRepository[T]) LoadWithTx(ctx context.Context, tx Transactional
 	return r.load(ctx, pgTx.tx, id, agg)
 }
 
-func (r *PostgresRepository[T]) Load(ctx context.Context, id core.AggregateId, agg core.Aggregate) error {
+func (r *PostgresRepository[T]) Load(ctx context.Context, id core.AggregateId, agg T) error {
 	var data []byte
 	var version int
 	var createdAt time.Time
@@ -203,7 +169,7 @@ func (r *PostgresRepository[T]) Load(ctx context.Context, id core.AggregateId, a
 	return nil
 }
 
-func (r *PostgresRepository[T]) load(ctx context.Context, tx *sql.Tx, id core.AggregateId, agg core.Aggregate) error {
+func (r *PostgresRepository[T]) load(ctx context.Context, tx *sql.Tx, id core.AggregateId, agg T) error {
 	var data []byte
 	var version int
 	var createdAt time.Time

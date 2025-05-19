@@ -18,9 +18,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	repo := postgres.NewPostgresRepository[*surveys.Survey](db, "surveys")
+	surveyRepo := postgres.NewPostgresRepository[*surveys.Survey](db, "surveys")
+	_ = postgres.NewPostgresRepository[*surveys.SurveyResponse](db, "responses")
 
-	surveyCommandHandler := command.NewSurveyCommandHandler(repo)
+	surveyCommandHandler := command.NewSurveyCommandHandler[*surveys.Survey](surveyRepo)
 
 	surveyHandler := rest.SurveyHandler{
 		CommandHandler: surveyCommandHandler,
