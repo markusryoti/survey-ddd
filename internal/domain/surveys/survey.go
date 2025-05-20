@@ -152,12 +152,18 @@ func NewSurvey(title string, description *string) (*Survey, error) {
 	return survey, nil
 }
 
-func (s *Survey) SetMaxParticipants(participants int) {
+func (s *Survey) SetMaxParticipants(participants int) error {
+	if participants < 3 {
+		return errors.New("min participants is three")
+	}
+
 	s.addEvent(MaxParticipantsChanged{
 		Id:              s.Id,
 		MaxParticipants: participants,
 		CreatedAt:       time.Now(),
 	})
+
+	return nil
 }
 
 func (s *Survey) SetEndTime(endTime time.Time) error {

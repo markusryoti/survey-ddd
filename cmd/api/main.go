@@ -21,7 +21,9 @@ func main() {
 	surveyRepo := postgres.NewPostgresRepository[*surveys.Survey](db, "surveys")
 	_ = postgres.NewPostgresRepository[*surveys.SurveyResponse](db, "responses")
 
-	surveyCommandHandler := command.NewSurveyCommandHandler[*surveys.Survey](surveyRepo)
+	transactional := postgres.NewPostgresTransactionalProvider(db)
+
+	surveyCommandHandler := command.NewSurveyCommandHandler[*surveys.Survey](surveyRepo, transactional)
 
 	surveyHandler := rest.SurveyHandler{
 		CommandHandler: surveyCommandHandler,

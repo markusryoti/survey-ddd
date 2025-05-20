@@ -30,7 +30,7 @@ func (r *PostgresRepository[T]) Save(ctx context.Context, aggregate T) error {
 	return r.save(ctx, tx, aggregate)
 }
 
-func (r *PostgresRepository[T]) SaveWithTx(ctx context.Context, tx core.Transactional, aggregate T) error {
+func (r *PostgresRepository[T]) SaveWithTx(ctx context.Context, tx core.Transaction, aggregate T) error {
 	pgTx, ok := tx.(*PostgresTx)
 	if !ok {
 		return errors.New("couldn't convert to postgres tx")
@@ -40,14 +40,6 @@ func (r *PostgresRepository[T]) SaveWithTx(ctx context.Context, tx core.Transact
 }
 
 func (r *PostgresRepository[T]) save(ctx context.Context, tx *sql.Tx, aggregate T) error {
-	var err error
-
-	defer func(cause error) {
-		if cause != nil {
-			tx.Rollback()
-		}
-	}(err)
-
 	data, err := json.Marshal(aggregate)
 	if err != nil {
 		return err
@@ -132,15 +124,10 @@ func (r *PostgresRepository[T]) save(ctx context.Context, tx *sql.Tx, aggregate 
 		nextVersion++
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func (r *PostgresRepository[T]) LoadWithTx(ctx context.Context, tx core.Transactional, id core.AggregateId, agg T) error {
+func (r *PostgresRepository[T]) LoadWithTx(ctx context.Context, tx core.Transaction, id core.AggregateId, agg T) error {
 	pgTx, ok := tx.(*PostgresTx)
 	if !ok {
 		return errors.New("couldn't convert to postgres tx")

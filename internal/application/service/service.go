@@ -2,37 +2,31 @@ package service
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
-	"github.com/markusryoti/survey-ddd/internal/adapters/postgres"
 	"github.com/markusryoti/survey-ddd/internal/core"
 	"github.com/markusryoti/survey-ddd/internal/domain/surveys"
 )
 
 type SurveyService struct {
-	surveyRepo           *postgres.PostgresRepository[*surveys.Survey]
-	responseRepo         *postgres.PostgresRepository[*surveys.SurveyResponse]
+	surveyRepo           core.Repository[*surveys.Survey]
+	responseRepo         core.Repository[*surveys.SurveyResponse]
 	domainEventDipatcher *core.EventDispatcher
-	db                   *sql.DB
+	txProvider           core.TransactionProvider
 }
 
 func NewSurveyService(
-	surveyRepo *postgres.PostgresRepository[*surveys.Survey],
-	responseRepo *postgres.PostgresRepository[*surveys.SurveyResponse],
+	surveyRepo core.Repository[*surveys.Survey],
+	responseRepo core.Repository[*surveys.SurveyResponse],
 	domainEventDipatcher *core.EventDispatcher,
-	db *sql.DB,
+	txProvider core.TransactionProvider,
 ) *SurveyService {
 	return &SurveyService{
 		surveyRepo:           surveyRepo,
 		responseRepo:         responseRepo,
 		domainEventDipatcher: domainEventDipatcher,
-		db:                   db,
+		txProvider:           txProvider,
 	}
-}
-
-func (s *SurveyService) newTx(ctx context.Context) (*sql.Tx, error) {
-	return s.db.BeginTx(ctx, &sql.TxOptions{})
 }
 
 type ResponseToSurveyCmd struct {
@@ -40,50 +34,38 @@ type ResponseToSurveyCmd struct {
 }
 
 func (s *SurveyService) AddResponseToQuestion(ctx context.Context, cmd ResponseToSurveyCmd) error {
-	var err error
-
-	tx, err := s.newTx(ctx)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
+	err := s.txProvider.RunTransactional(ctx, func(tx core.Transaction) error {
+		surveyId, err := surveys.SurveyIdFromString(cmd.SurveyId)
 		if err != nil {
-			err = tx.Rollback()
-			if err != nil {
-				panic("rollback failed")
-			}
+			return err
 		}
-	}()
 
-	var survey surveys.Survey
-	surveyId, err := surveys.SurveyIdFromString(cmd.SurveyId)
-	if err != nil {
-		return err
-	}
+		response := surveys.NewSurveyResponse(surveyId)
 
-	response := surveys.NewSurveyResponse(surveyId)
+		survey := new(surveys.Survey)
 
-	err = s.surveyRepo.Load(ctx, core.AggregateId(surveyId), &survey)
-	if err != nil {
-		return err
-	}
+		err = s.surveyRepo.LoadWithTx(ctx, tx, core.AggregateId(surveyId), survey)
+		if err != nil {
+			return err
+		}
 
-	err = survey.SubmissionReceived(time.Now())
-	if err != nil {
-		return err
-	}
+		err = survey.SubmissionReceived(time.Now())
+		if err != nil {
+			return err
+		}
 
-	err = s.responseRepo.Save(ctx, response)
-	if err != nil {
-		return err
-	}
+		err = s.responseRepo.SaveWithTx(ctx, tx, response)
+		if err != nil {
+			return err
+		}
 
-	err = s.surveyRepo.Save(ctx, &survey)
-	if err != nil {
-		return err
-	}
+		err = s.surveyRepo.SaveWithTx(ctx, tx, survey)
+		if err != nil {
+			return err
+		}
 
-	err = tx.Commit()
+		return nil
+	})
+
 	return err
 }

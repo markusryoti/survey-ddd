@@ -3,32 +3,48 @@ package postgres
 import (
 	"context"
 	"database/sql"
+
+	"github.com/markusryoti/survey-ddd/internal/core"
 )
 
-type PostgresTx struct {
+func NewPostgresTransactionalProvider(db *sql.DB) *PostgresTransactionalProvider {
+	return &PostgresTransactionalProvider{
+		db: db,
+	}
+}
+
+type PostgresTransactionalProvider struct {
 	db *sql.DB
+}
+
+type PostgresTx struct {
 	tx *sql.Tx
 }
 
-func (p *PostgresTx) Begin(ctx context.Context) error {
-	tx, err := p.db.BeginTx(ctx, &sql.TxOptions{})
+func (p *PostgresTransactionalProvider) RunTransactional(ctx context.Context, fn core.TransactionalSignature) error {
+	var err error
+	var tx *sql.Tx
+
+	tx, err = p.db.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return err
 	}
 
-	p.tx = tx
+	defer func() {
+		if err != nil {
+			err = tx.Rollback()
+			if err != nil {
+				panic("rollback failed")
+			}
+		}
+	}()
 
-	return nil
-}
+	t := &PostgresTx{tx: tx}
 
-func (p *PostgresTx) Commit() error {
-	return p.tx.Commit()
-}
+	err = fn(t)
+	if err != nil {
+		return err
+	}
 
-func (p *PostgresTx) Rollback() error {
-	return p.tx.Rollback()
-}
-
-func (p *PostgresTx) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
-	return p.tx.ExecContext(ctx, query, args)
+	return tx.Commit()
 }
