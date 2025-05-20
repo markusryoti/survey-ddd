@@ -7,14 +7,14 @@ import (
 	"github.com/markusryoti/survey-ddd/internal/core"
 )
 
+type PostgresTransactionalProvider struct {
+	db *sql.DB
+}
+
 func NewPostgresTransactionalProvider(db *sql.DB) *PostgresTransactionalProvider {
 	return &PostgresTransactionalProvider{
 		db: db,
 	}
-}
-
-type PostgresTransactionalProvider struct {
-	db *sql.DB
 }
 
 type PostgresTx struct {

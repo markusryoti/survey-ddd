@@ -136,24 +136,12 @@ func (r *PostgresRepository[T]) LoadWithTx(ctx context.Context, tx core.Transact
 }
 
 func (r *PostgresRepository[T]) Load(ctx context.Context, id core.AggregateId, agg T) error {
-	var data []byte
-	var version int
-	var createdAt time.Time
-
-	err := r.db.QueryRowContext(ctx,
-		fmt.Sprintf(`SELECT data, version, created_at FROM %s WHERE id = $1`, r.tableName),
-		id,
-	).Scan(&data, &version, &createdAt)
-
-	err = json.Unmarshal(data, agg)
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	agg.SetVersion(version)
-	agg.SetCreatedAt(createdAt)
-
-	return nil
+	return r.load(ctx, tx, id, agg)
 }
 
 func (r *PostgresRepository[T]) load(ctx context.Context, tx *sql.Tx, id core.AggregateId, agg T) error {

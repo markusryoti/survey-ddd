@@ -1,53 +1,39 @@
-package command_test
+package service_test
 
 import (
 	"context"
 	"testing"
 
-	"github.com/markusryoti/survey-ddd/internal/application/command"
+	"github.com/markusryoti/survey-ddd/internal/application/service"
 	"github.com/markusryoti/survey-ddd/internal/core"
 	"github.com/markusryoti/survey-ddd/internal/domain/surveys"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCreateSurvey(t *testing.T) {
-	t.Run("can create a survey", func(t *testing.T) {
-		repo := newSurveyMockRepo[*surveys.Survey]()
-		transctional := newMockTransactionalProvider()
-		handler := command.NewSurveyCommandHandler[*surveys.Survey](repo, transctional)
-
-		description := "survey description"
-
-		survey, err := handler.HandleCreateSurvey(context.Background(), surveys.CreateSurveyCommand{
-			Title:       "survey title",
-			Description: &description,
-		})
-
-		assert.Nil(t, err)
-		assert.Len(t, survey.GetUncommittedEvents(), 0)
-	})
-}
-
-func TestSetMaxParticipants(t *testing.T) {
-	t.Run("can create a survey", func(t *testing.T) {
+func TestSubmitResponse(t *testing.T) {
+	t.Run("can submit a response to question", func(t *testing.T) {
 		ctx := context.Background()
-		repo := newSurveyMockRepo[*surveys.Survey]()
+
+		surveyRepo := newSurveyMockRepo[*surveys.Survey]()
+		responseRepo := newSurveyMockRepo[*surveys.SurveyResponse]()
 		transctional := newMockTransactionalProvider()
-		handler := command.NewSurveyCommandHandler[*surveys.Survey](repo, transctional)
 
 		description := "survey description"
 
-		survey, err := handler.HandleCreateSurvey(ctx, surveys.CreateSurveyCommand{
-			Title:       "survey title",
-			Description: &description,
-		})
-
-		err = handler.HandleSetMaxParticipants(ctx, surveys.SetMaxParticipantsCommand{
-			SurveyId:        survey.Id.String(),
-			MaxParticipants: 3,
-		})
-
+		survey, err := surveys.NewSurvey("some title", &description)
 		assert.Nil(t, err)
+
+		err = surveyRepo.Save(ctx, survey)
+		assert.Nil(t, err)
+		assert.NotEqual(t, "", survey.Id.String())
+
+		srv := service.NewSurveyService(surveyRepo, responseRepo, nil, transctional)
+
+		err = srv.AddResponseToQuestion(ctx, service.ResponseToSurveyCmd{
+			SurveyId: survey.Id.String(),
+		})
+		assert.Nil(t, err)
+
 	})
 }
 
