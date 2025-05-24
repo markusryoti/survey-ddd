@@ -11,7 +11,7 @@ import (
 )
 
 type SurveyHandler struct {
-	CommandHandler *command.SurveyPostgresCommandHandler
+	CommandHandler *command.SurveyCmdHandler
 }
 
 func (h SurveyHandler) RegisterRoutes(r chi.Router) {

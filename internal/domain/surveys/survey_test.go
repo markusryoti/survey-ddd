@@ -12,10 +12,11 @@ func TestNewSurvey(t *testing.T) {
 	t.Run("new survey is created and in draft state", func(t *testing.T) {
 		title := "a title"
 		description := "a description"
-		survey, err := surveys.NewSurvey(title, &description)
+		survey, err := surveys.NewSurvey(title, &description, "tenant")
 
 		assert.Nil(t, err)
 		assert.Equal(t, title, survey.Title)
+		assert.Equal(t, description, *survey.Description)
 		assert.Equal(t, surveys.Draft, survey.SurveyStatus)
 	})
 
@@ -70,8 +71,8 @@ func TestSubmissions(t *testing.T) {
 		survey := newSurvey()
 		option1 := surveys.NewQuestionOption("option 1")
 		option2 := surveys.NewQuestionOption("option 2")
-		question := surveys.NewQuestion("a guestion", "some stuff", []surveys.QuestionOption{
-			*option1, *option2,
+		question, _ := surveys.NewQuestion("a guestion", "some stuff", []string{
+			"option 1", "option 2",
 		}, false)
 
 		err := survey.ValidateResponse(question.Id, []surveys.QuestionOptionId{
@@ -151,7 +152,7 @@ func TestSubmissions(t *testing.T) {
 
 func newSurvey() *surveys.Survey {
 	description := "a description"
-	survey, _ := surveys.NewSurvey("a title", &description)
+	survey, _ := surveys.NewSurvey("a title", &description, "tenant")
 	survey.SetEndTime(now().Add(1 * time.Minute))
 	return survey
 }

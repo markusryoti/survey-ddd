@@ -1,19 +1,20 @@
 package surveys
 
 type CreateSurveyCommand struct {
-	Title       string
-	Description *string
-}
-
-func (c CreateSurveyCommand) Type() string {
-	return "CreateSurveyCommand"
+	Title       string  `json:"title"`
+	Description *string `json:"description"`
+	TenantId    string  `json:"tenantId"`
 }
 
 type SetMaxParticipantsCommand struct {
-	SurveyId        string
-	MaxParticipants int
+	SurveyId        string `json:"surveyId"`
+	MaxParticipants int    `json:"maxParticipants"`
 }
 
-func (c SetMaxParticipantsCommand) Type() string {
-	return "SetMaxParticipantsCommand"
+type AddQuestionCommand struct {
+	SurveyId        string   `json:"surveyId"`
+	Title           string   `json:"title"`
+	Description     *string  `json:"description"`
+	AllowMultiple   bool     `json:"allowMultiple"`
+	QuestionOptions []string `json:"questionOptions"`
 }

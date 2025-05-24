@@ -2,7 +2,6 @@ package command
 
 import (
 	"context"
-	"time"
 
 	"github.com/markusryoti/survey-ddd/internal/core"
 	"github.com/markusryoti/survey-ddd/internal/domain/surveys"
@@ -13,30 +12,28 @@ type SurveyCommandHandler interface {
 	HandleSetMaxParticipants(ctx context.Context, cmd surveys.SetMaxParticipantsCommand) error
 }
 
-type SurveyPostgresCommandHandler struct {
-	repo                 core.Repository[*surveys.Survey]
-	domainEventDipatcher *core.EventDispatcher
-	txProvider           core.TransactionProvider
+type SurveyCmdHandler struct {
+	repo       core.Repository[*surveys.Survey]
+	txProvider core.TransactionProvider
 }
 
 func NewSurveyCommandHandler[T core.Aggregate](
 	repo core.Repository[*surveys.Survey],
 	txProvider core.TransactionProvider,
-) *SurveyPostgresCommandHandler {
-	return &SurveyPostgresCommandHandler{
-		repo:                 repo,
-		domainEventDipatcher: core.NewEventDispatcher(),
-		txProvider:           txProvider,
+) *SurveyCmdHandler {
+	return &SurveyCmdHandler{
+		repo:       repo,
+		txProvider: txProvider,
 	}
 }
 
-func (h *SurveyPostgresCommandHandler) HandleCreateSurvey(ctx context.Context, cmd surveys.CreateSurveyCommand) (*surveys.Survey, error) {
+func (h *SurveyCmdHandler) HandleCreateSurvey(ctx context.Context, cmd surveys.CreateSurveyCommand) (*surveys.Survey, error) {
 	var err error
 
 	survey := new(surveys.Survey)
 
 	err = h.txProvider.RunTransactional(ctx, func(tx core.Transaction) error {
-		survey, err = surveys.NewSurvey(cmd.Title, cmd.Description)
+		survey, err = surveys.NewSurvey(cmd.Title, cmd.Description, cmd.TenantId)
 		if err != nil {
 			return err
 		}
@@ -46,8 +43,6 @@ func (h *SurveyPostgresCommandHandler) HandleCreateSurvey(ctx context.Context, c
 			return err
 		}
 
-		h.domainEventDipatcher.Dispatch(ctx, survey.GetUncommittedEvents()...)
-
 		survey.ClearUncommittedEvents()
 
 		return err
@@ -56,7 +51,7 @@ func (h *SurveyPostgresCommandHandler) HandleCreateSurvey(ctx context.Context, c
 	return survey, err
 }
 
-func (h *SurveyPostgresCommandHandler) HandleSetMaxParticipants(ctx context.Context, cmd surveys.SetMaxParticipantsCommand) error {
+func (h *SurveyCmdHandler) HandleSetMaxParticipants(ctx context.Context, cmd surveys.SetMaxParticipantsCommand) error {
 	surveyId, err := surveys.SurveyIdFromString(cmd.SurveyId)
 
 	survey := new(surveys.Survey)
@@ -76,21 +71,38 @@ func (h *SurveyPostgresCommandHandler) HandleSetMaxParticipants(ctx context.Cont
 		return err
 	}
 
-	h.domainEventDipatcher.Dispatch(ctx, survey.GetUncommittedEvents()...)
-
 	survey.ClearUncommittedEvents()
 
 	return nil
 }
 
-type CreateSurveyCommand struct {
-	Title           string    `json:"title"`
-	Description     *string   `json:"description"`
-	MaxParticipants int       `json:"max_participants"`
-	EndTime         time.Time `json:"end_time"`
-	TenantID        string    `json:"tenant_id"`
-}
+func (h *SurveyCmdHandler) AddQuestion(ctx context.Context, cmd surveys.AddQuestionCommand) error {
+	surveyId, err := surveys.SurveyIdFromString(cmd.SurveyId)
+	if err != nil {
+		return err
+	}
 
-func (c CreateSurveyCommand) Type() string {
-	return "CreateSurveyCommand"
+	q, err := surveys.NewQuestion(cmd.Title, *cmd.Description, cmd.QuestionOptions, cmd.AllowMultiple)
+	if err != nil {
+		return err
+	}
+
+	err = h.txProvider.RunTransactional(ctx, func(tx core.Transaction) error {
+		survey := new(surveys.Survey)
+
+		err := h.repo.LoadWithTx(ctx, tx, core.AggregateId(surveyId), survey)
+		if err != nil {
+			return err
+		}
+
+		survey.AddQuestion(*q)
+
+		err = h.repo.SaveWithTx(ctx, tx, survey)
+
+		survey.ClearUncommittedEvents()
+
+		return err
+	})
+
+	return err
 }

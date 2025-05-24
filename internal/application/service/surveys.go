@@ -9,23 +9,20 @@ import (
 )
 
 type SurveyService struct {
-	surveyRepo           core.Repository[*surveys.Survey]
-	responseRepo         core.Repository[*surveys.SurveyResponse]
-	domainEventDipatcher *core.EventDispatcher
-	txProvider           core.TransactionProvider
+	surveyRepo   core.Repository[*surveys.Survey]
+	responseRepo core.Repository[*surveys.SurveyResponse]
+	txProvider   core.TransactionProvider
 }
 
 func NewSurveyService(
 	surveyRepo core.Repository[*surveys.Survey],
 	responseRepo core.Repository[*surveys.SurveyResponse],
-	domainEventDipatcher *core.EventDispatcher,
 	txProvider core.TransactionProvider,
 ) *SurveyService {
 	return &SurveyService{
-		surveyRepo:           surveyRepo,
-		responseRepo:         responseRepo,
-		domainEventDipatcher: domainEventDipatcher,
-		txProvider:           txProvider,
+		surveyRepo:   surveyRepo,
+		responseRepo: responseRepo,
+		txProvider:   txProvider,
 	}
 }
 

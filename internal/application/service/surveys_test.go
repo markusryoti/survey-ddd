@@ -20,14 +20,14 @@ func TestSubmitResponse(t *testing.T) {
 
 		description := "survey description"
 
-		survey, err := surveys.NewSurvey("some title", &description)
+		survey, err := surveys.NewSurvey("some title", &description, "tenant")
 		assert.Nil(t, err)
 
 		err = surveyRepo.Save(ctx, survey)
 		assert.Nil(t, err)
 		assert.NotEqual(t, "", survey.Id.String())
 
-		srv := service.NewSurveyService(surveyRepo, responseRepo, nil, transctional)
+		srv := service.NewSurveyService(surveyRepo, responseRepo, transctional)
 
 		err = srv.AddResponseToQuestion(ctx, service.ResponseToSurveyCmd{
 			SurveyId: survey.Id.String(),

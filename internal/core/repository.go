@@ -1,6 +1,8 @@
 package core
 
-import "context"
+import (
+	"context"
+)
 
 type Repository[T Aggregate] interface {
 	Save(ctx context.Context, aggregate T) error

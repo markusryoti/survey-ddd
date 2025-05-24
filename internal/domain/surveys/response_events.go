@@ -21,7 +21,7 @@ func (e SurveyResponseCreated) Type() string {
 	return "survey-response-created"
 }
 
-func (e SurveyResponseCreated) Timestamp() time.Time {
+func (e SurveyResponseCreated) OccurredAt() time.Time {
 	return e.CreatedAt
 }
 
@@ -40,7 +40,7 @@ func (e QuestionAnswered) Type() string {
 	return "question-answered"
 }
 
-func (e QuestionAnswered) Timestamp() time.Time {
+func (e QuestionAnswered) OccurredAt() time.Time {
 	return e.CreatedAt
 }
 
@@ -58,6 +58,6 @@ func (e ResponseSubmitted) Type() string {
 	return "response-submitted"
 }
 
-func (e ResponseSubmitted) Timestamp() time.Time {
+func (e ResponseSubmitted) OccurredAt() time.Time {
 	return e.CreatedAt
 }

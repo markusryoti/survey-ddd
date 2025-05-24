@@ -10,6 +10,7 @@ type SurveyCreated struct {
 	Id           SurveyId
 	Title        string
 	Description  *string
+	TenantId     string
 	SurveyStatus SurveyStatus
 	CreatedAt    time.Time
 }
@@ -22,7 +23,7 @@ func (e SurveyCreated) Type() string {
 	return "survey-created"
 }
 
-func (e SurveyCreated) Timestamp() time.Time {
+func (e SurveyCreated) OccurredAt() time.Time {
 	return e.CreatedAt
 }
 
@@ -40,7 +41,7 @@ func (e QuestionAdded) Type() string {
 	return "question-added"
 }
 
-func (e QuestionAdded) Timestamp() time.Time {
+func (e QuestionAdded) OccurredAt() time.Time {
 	return e.CreatedAt
 }
 
@@ -58,7 +59,7 @@ func (e MaxParticipantsChanged) Type() string {
 	return "max-participants-changed"
 }
 
-func (e MaxParticipantsChanged) Timestamp() time.Time {
+func (e MaxParticipantsChanged) OccurredAt() time.Time {
 	return e.CreatedAt
 }
 
@@ -76,7 +77,7 @@ func (e SurveyEndTimeChanged) Type() string {
 	return "survey-endtime-changed"
 }
 
-func (e SurveyEndTimeChanged) Timestamp() time.Time {
+func (e SurveyEndTimeChanged) OccurredAt() time.Time {
 	return e.CreatedAt
 }
 
@@ -93,7 +94,7 @@ func (e SurveyReleased) Type() string {
 	return "survey-released"
 }
 
-func (e SurveyReleased) Timestamp() time.Time {
+func (e SurveyReleased) OccurredAt() time.Time {
 	return e.CreatedAt
 }
 
@@ -111,7 +112,7 @@ func (e SubmissionReceived) Type() string {
 	return "submission-received"
 }
 
-func (e SubmissionReceived) Timestamp() time.Time {
+func (e SubmissionReceived) OccurredAt() time.Time {
 	return e.CreatedAt
 }
 
@@ -128,7 +129,7 @@ func (e SurveyCompleted) Type() string {
 	return "survey-completed"
 }
 
-func (e SurveyCompleted) Timestamp() time.Time {
+func (e SurveyCompleted) OccurredAt() time.Time {
 	return e.CreatedAt
 }
 
@@ -145,6 +146,6 @@ func (e SurveyLocked) Type() string {
 	return "survey-locked"
 }
 
-func (e SurveyLocked) Timestamp() time.Time {
+func (e SurveyLocked) OccurredAt() time.Time {
 	return e.CreatedAt
 }

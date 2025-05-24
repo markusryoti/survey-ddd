@@ -61,6 +61,27 @@ type Survey struct {
 	uncommittedEvents []core.DomainEvent
 }
 
+func NewSurvey(title string, description *string, tenantId string) (*Survey, error) {
+	now := time.Now()
+
+	if title == "" || tenantId == "" {
+		return nil, errors.New("invalid survey")
+	}
+
+	survey := new(Survey)
+
+	survey.addEvent(SurveyCreated{
+		Id:           NewSurveyId(),
+		Title:        title,
+		Description:  description,
+		TenantId:     tenantId,
+		SurveyStatus: Draft,
+		CreatedAt:    now,
+	})
+
+	return survey, nil
+}
+
 func (s Survey) ID() core.AggregateId {
 	return core.AggregateId(s.Id)
 }
@@ -134,22 +155,6 @@ type QuestionOptionId string
 type QuestionOption struct {
 	Id    QuestionOptionId
 	Value string
-}
-
-func NewSurvey(title string, description *string) (*Survey, error) {
-	now := time.Now()
-
-	survey := &Survey{}
-
-	survey.addEvent(SurveyCreated{
-		Id:           NewSurveyId(),
-		Title:        title,
-		Description:  description,
-		SurveyStatus: Draft,
-		CreatedAt:    now,
-	})
-
-	return survey, nil
 }
 
 func (s *Survey) SetMaxParticipants(participants int) error {
@@ -282,6 +287,7 @@ func (s *Survey) ApplyEvent(event core.DomainEvent) {
 		s.Id = e.Id
 		s.Title = e.Title
 		s.Description = e.Description
+		s.TenantId = e.TenantId
 		s.SurveyStatus = e.SurveyStatus
 		s.TimeCreated = e.CreatedAt
 	case QuestionAdded:
@@ -312,7 +318,22 @@ func (s Survey) AnswersReceived() int {
 	return len(s.SubmissionTimes)
 }
 
-func NewQuestion(title string, description string, options []QuestionOption, allowMultiple bool) *Question {
+func NewQuestion(title string, description string, options []string, allowMultiple bool) (*Question, error) {
+	if title == "" {
+		return nil, errors.New("title cannot be empty")
+	}
+
+	if len(options) < 2 {
+		return nil, errors.New("each options needs minimum of two options")
+	}
+
+	opts := make([]QuestionOption, 0)
+
+	for _, opt := range options {
+		o := NewQuestionOption(opt)
+		opts = append(opts, *o)
+	}
+
 	var qt QuestionType
 
 	if allowMultiple {
@@ -322,11 +343,12 @@ func NewQuestion(title string, description string, options []QuestionOption, all
 	}
 
 	return &Question{
+		Id:              QuestionId(uuid.New().String()),
 		Title:           title,
 		Description:     &description,
-		QuestionOptions: options,
+		QuestionOptions: opts,
 		QuestionType:    qt,
-	}
+	}, nil
 }
 
 func NewQuestionOption(value string) *QuestionOption {
