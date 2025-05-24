@@ -7,16 +7,19 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/markusryoti/survey-ddd/internal/application/command"
+	"github.com/markusryoti/survey-ddd/internal/application/query"
 	"github.com/markusryoti/survey-ddd/internal/domain/surveys"
 )
 
 type SurveyHandler struct {
-	CommandHandler *command.SurveyCmdHandler
+	CommandHandler *command.CommandHandler
+	QueryHandler   *query.QueryHandler
 }
 
 func (h SurveyHandler) RegisterRoutes(r chi.Router) {
 	r.Get("/", h.index)
 	r.Post("/surveys", h.CreateSurvey)
+	r.Get("/surveys/{id}", h.GetSurvey)
 }
 
 func (h SurveyHandler) index(w http.ResponseWriter, r *http.Request) {
@@ -67,6 +70,18 @@ type CreateSurveyRequest struct {
 	Title       string  `json:"title"`
 	Description *string `json:"description"`
 	TenantId    string  `json:"tenantId"`
+}
+
+func (h SurveyHandler) GetSurvey(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	survey, err := h.QueryHandler.GetSurvey(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(survey)
 }
 
 type QuestionInput struct {

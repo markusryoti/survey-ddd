@@ -7,19 +7,19 @@ import (
 	"github.com/markusryoti/survey-ddd/internal/domain/surveys"
 )
 
-type SurveyCmdHandler struct {
+type CommandHandler struct {
 	txProvider core.TransactionProvider
 }
 
-func NewSurveyCommandHandler(
+func NewCommandHandler(
 	txProvider core.TransactionProvider,
-) *SurveyCmdHandler {
-	return &SurveyCmdHandler{
+) *CommandHandler {
+	return &CommandHandler{
 		txProvider: txProvider,
 	}
 }
 
-func (h *SurveyCmdHandler) HandleCreateSurvey(ctx context.Context, cmd surveys.CreateSurveyCommand) (*surveys.Survey, error) {
+func (h *CommandHandler) HandleCreateSurvey(ctx context.Context, cmd surveys.CreateSurveyCommand) (*surveys.Survey, error) {
 	var err error
 
 	survey := new(surveys.Survey)
@@ -43,8 +43,11 @@ func (h *SurveyCmdHandler) HandleCreateSurvey(ctx context.Context, cmd surveys.C
 	return survey, err
 }
 
-func (h *SurveyCmdHandler) HandleSetMaxParticipants(ctx context.Context, cmd surveys.SetMaxParticipantsCommand) error {
+func (h *CommandHandler) HandleSetMaxParticipants(ctx context.Context, cmd surveys.SetMaxParticipantsCommand) error {
 	surveyId, err := surveys.SurveyIdFromString(cmd.SurveyId)
+	if err != nil {
+		return err
+	}
 
 	return h.txProvider.RunTransactional(ctx, func(repo core.Repository) error {
 		survey := new(surveys.Survey)
@@ -70,7 +73,7 @@ func (h *SurveyCmdHandler) HandleSetMaxParticipants(ctx context.Context, cmd sur
 	})
 }
 
-func (h *SurveyCmdHandler) AddQuestion(ctx context.Context, cmd surveys.AddQuestionCommand) error {
+func (h *CommandHandler) AddQuestion(ctx context.Context, cmd surveys.AddQuestionCommand) error {
 	surveyId, err := surveys.SurveyIdFromString(cmd.SurveyId)
 	if err != nil {
 		return err

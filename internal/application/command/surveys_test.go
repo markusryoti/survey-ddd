@@ -13,7 +13,7 @@ import (
 func TestCreateSurvey(t *testing.T) {
 	t.Run("can create a survey", func(t *testing.T) {
 		transctional := newMockTransactionalProvider()
-		handler := command.NewSurveyCommandHandler(transctional)
+		handler := command.NewCommandHandler(transctional)
 
 		description := "survey description"
 
@@ -31,7 +31,7 @@ func TestSetMaxParticipants(t *testing.T) {
 	t.Run("can create a survey", func(t *testing.T) {
 		ctx := context.Background()
 		transctional := newMockTransactionalProvider()
-		handler := command.NewSurveyCommandHandler(transctional)
+		handler := command.NewCommandHandler(transctional)
 
 		description := "survey description"
 

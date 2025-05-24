@@ -10,6 +10,7 @@ import (
 	"github.com/markusryoti/survey-ddd/internal/adapters/postgres"
 	"github.com/markusryoti/survey-ddd/internal/adapters/rest"
 	"github.com/markusryoti/survey-ddd/internal/application/command"
+	"github.com/markusryoti/survey-ddd/internal/application/query"
 )
 
 func main() {
@@ -20,10 +21,12 @@ func main() {
 
 	transactional := postgres.NewPostgresTransactionalProvider(db)
 
-	surveyCommandHandler := command.NewSurveyCommandHandler(transactional)
+	surveyCommandHandler := command.NewCommandHandler(transactional)
+	queryHandler := query.NewQueryHandler(transactional)
 
 	surveyHandler := rest.SurveyHandler{
 		CommandHandler: surveyCommandHandler,
+		QueryHandler:   queryHandler,
 	}
 
 	r := chi.NewRouter()
