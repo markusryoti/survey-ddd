@@ -12,34 +12,15 @@ import (
 	"github.com/markusryoti/survey-ddd/internal/core"
 )
 
-type PostgresRepository[T core.Aggregate] struct {
-	db        *sql.DB
-	tableName string
+type PostgresRepository struct {
+	tx *sql.Tx
 }
 
-func NewPostgresRepository[T core.Aggregate](db *sql.DB, tableName string) *PostgresRepository[T] {
-	return &PostgresRepository[T]{db: db, tableName: tableName}
+func NewPostgresRepository(tx *sql.Tx) *PostgresRepository {
+	return &PostgresRepository{tx: tx}
 }
 
-func (r *PostgresRepository[T]) Save(ctx context.Context, aggregate T) error {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-
-	return r.save(ctx, tx, aggregate)
-}
-
-func (r *PostgresRepository[T]) SaveWithTx(ctx context.Context, tx core.Transaction, aggregate T) error {
-	pgTx, ok := tx.(*PostgresTx)
-	if !ok {
-		return errors.New("couldn't convert to postgres tx")
-	}
-
-	return r.save(ctx, pgTx.tx, aggregate)
-}
-
-func (r *PostgresRepository[T]) save(ctx context.Context, tx *sql.Tx, aggregate T) error {
+func (r *PostgresRepository) Save(ctx context.Context, aggregate core.Aggregate) error {
 	data, err := json.Marshal(aggregate)
 	if err != nil {
 		return err
@@ -47,9 +28,9 @@ func (r *PostgresRepository[T]) save(ctx context.Context, tx *sql.Tx, aggregate 
 
 	if aggregate.Version() == 0 {
 		// New aggregate: INSERT
-		_, err = tx.ExecContext(ctx,
+		_, err = r.tx.ExecContext(ctx,
 			fmt.Sprintf(`INSERT INTO %s (id, data, version, created_at)
-                         VALUES ($1, $2, $3, $4)`, r.tableName),
+                         VALUES ($1, $2, $3, $4)`, aggregate.TableName()),
 			uuid.UUID(aggregate.ID()),
 			data,
 			1, // First version number is 1
@@ -60,10 +41,10 @@ func (r *PostgresRepository[T]) save(ctx context.Context, tx *sql.Tx, aggregate 
 		}
 	} else {
 		// Existing aggregate: UPDATE with OCC
-		res, err := tx.ExecContext(ctx,
+		res, err := r.tx.ExecContext(ctx,
 			fmt.Sprintf(`UPDATE %s
                          SET data = $1, version = $2
-                         WHERE id = $3 AND version = $4`, r.tableName),
+                         WHERE id = $3 AND version = $4`, aggregate.TableName()),
 			data,
 			aggregate.Version(), // e.g., version 2
 			uuid.UUID(aggregate.ID()),
@@ -93,11 +74,12 @@ func (r *PostgresRepository[T]) save(ctx context.Context, tx *sql.Tx, aggregate 
 		}
 
 		// Insert into event store
-		_, err = tx.ExecContext(ctx, `
-            INSERT INTO events (aggregate_id, type, payload, occurred_at, version)
-            VALUES ($1, $2, $3, $4, $5)
+		_, err = r.tx.ExecContext(ctx, `
+            INSERT INTO events (aggregate_id, aggregate_name, event_type, payload, occurred_at, version)
+            VALUES ($1, $2, $3, $4, $5, $6)
         `,
 			uuid.UUID(aggregate.ID()),
+			aggregate.Name(),
 			event.Type(),
 			eventData,
 			time.Now(),
@@ -107,11 +89,12 @@ func (r *PostgresRepository[T]) save(ctx context.Context, tx *sql.Tx, aggregate 
 			return fmt.Errorf("failed to insert event: %w", err)
 		}
 
-		_, err = tx.ExecContext(ctx, `
-            INSERT INTO outbox (aggregate_id, type, payload, occurred_at, status)
-            VALUES ($1, $2, $3, $4, $5)
+		_, err = r.tx.ExecContext(ctx, `
+            INSERT INTO outbox (aggregate_id, aggregate_name, event_type, payload, occurred_at, status)
+            VALUES ($1, $2, $3, $4, $5, $6)
         `,
 			uuid.UUID(aggregate.ID()),
+			aggregate.Name(),
 			event.Type(),
 			eventData,
 			time.Now(),
@@ -127,30 +110,13 @@ func (r *PostgresRepository[T]) save(ctx context.Context, tx *sql.Tx, aggregate 
 	return nil
 }
 
-func (r *PostgresRepository[T]) LoadWithTx(ctx context.Context, tx core.Transaction, id core.AggregateId, agg T) error {
-	pgTx, ok := tx.(*PostgresTx)
-	if !ok {
-		return errors.New("couldn't convert to postgres tx")
-	}
-	return r.load(ctx, pgTx.tx, id, agg)
-}
-
-func (r *PostgresRepository[T]) Load(ctx context.Context, id core.AggregateId, agg T) error {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-
-	return r.load(ctx, tx, id, agg)
-}
-
-func (r *PostgresRepository[T]) load(ctx context.Context, tx *sql.Tx, id core.AggregateId, agg T) error {
+func (r *PostgresRepository) Load(ctx context.Context, id core.AggregateId, agg core.Aggregate) error {
 	var data []byte
 	var version int
 	var createdAt time.Time
 
-	err := tx.QueryRowContext(ctx,
-		fmt.Sprintf(`SELECT data, version, created_at FROM %s WHERE id = $1`, r.tableName),
+	err := r.tx.QueryRowContext(ctx,
+		fmt.Sprintf(`SELECT data, version, created_at FROM %s WHERE id = $1`, agg.TableName()),
 		id,
 	).Scan(&data, &version, &createdAt)
 

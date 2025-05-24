@@ -7,22 +7,14 @@ import (
 	"github.com/markusryoti/survey-ddd/internal/domain/surveys"
 )
 
-type SurveyCommandHandler interface {
-	HandleCreateSurvey(ctx context.Context, cmd surveys.CreateSurveyCommand) (*surveys.Survey, error)
-	HandleSetMaxParticipants(ctx context.Context, cmd surveys.SetMaxParticipantsCommand) error
-}
-
 type SurveyCmdHandler struct {
-	repo       core.Repository[*surveys.Survey]
 	txProvider core.TransactionProvider
 }
 
-func NewSurveyCommandHandler[T core.Aggregate](
-	repo core.Repository[*surveys.Survey],
+func NewSurveyCommandHandler(
 	txProvider core.TransactionProvider,
 ) *SurveyCmdHandler {
 	return &SurveyCmdHandler{
-		repo:       repo,
 		txProvider: txProvider,
 	}
 }
@@ -32,13 +24,13 @@ func (h *SurveyCmdHandler) HandleCreateSurvey(ctx context.Context, cmd surveys.C
 
 	survey := new(surveys.Survey)
 
-	err = h.txProvider.RunTransactional(ctx, func(tx core.Transaction) error {
+	err = h.txProvider.RunTransactional(ctx, func(repo core.Repository) error {
 		survey, err = surveys.NewSurvey(cmd.Title, cmd.Description, cmd.TenantId)
 		if err != nil {
 			return err
 		}
 
-		err = h.repo.SaveWithTx(ctx, tx, survey)
+		err = repo.Save(ctx, survey)
 		if err != nil {
 			return err
 		}
@@ -54,26 +46,28 @@ func (h *SurveyCmdHandler) HandleCreateSurvey(ctx context.Context, cmd surveys.C
 func (h *SurveyCmdHandler) HandleSetMaxParticipants(ctx context.Context, cmd surveys.SetMaxParticipantsCommand) error {
 	surveyId, err := surveys.SurveyIdFromString(cmd.SurveyId)
 
-	survey := new(surveys.Survey)
+	return h.txProvider.RunTransactional(ctx, func(repo core.Repository) error {
+		survey := new(surveys.Survey)
 
-	err = h.repo.Load(ctx, core.AggregateId(surveyId), survey)
-	if err != nil {
-		return err
-	}
+		err = repo.Load(ctx, core.AggregateId(surveyId), survey)
+		if err != nil {
+			return err
+		}
 
-	err = survey.SetMaxParticipants(cmd.MaxParticipants)
-	if err != nil {
-		return err
-	}
+		err = survey.SetMaxParticipants(cmd.MaxParticipants)
+		if err != nil {
+			return err
+		}
 
-	err = h.repo.Save(ctx, survey)
-	if err != nil {
-		return err
-	}
+		err = repo.Save(ctx, survey)
+		if err != nil {
+			return err
+		}
 
-	survey.ClearUncommittedEvents()
+		survey.ClearUncommittedEvents()
 
-	return nil
+		return nil
+	})
 }
 
 func (h *SurveyCmdHandler) AddQuestion(ctx context.Context, cmd surveys.AddQuestionCommand) error {
@@ -87,22 +81,23 @@ func (h *SurveyCmdHandler) AddQuestion(ctx context.Context, cmd surveys.AddQuest
 		return err
 	}
 
-	err = h.txProvider.RunTransactional(ctx, func(tx core.Transaction) error {
+	return h.txProvider.RunTransactional(ctx, func(repo core.Repository) error {
 		survey := new(surveys.Survey)
 
-		err := h.repo.LoadWithTx(ctx, tx, core.AggregateId(surveyId), survey)
+		err := repo.Load(ctx, core.AggregateId(surveyId), survey)
 		if err != nil {
 			return err
 		}
 
 		survey.AddQuestion(*q)
 
-		err = h.repo.SaveWithTx(ctx, tx, survey)
+		err = repo.Save(ctx, survey)
+		if err != nil {
+			return err
+		}
 
 		survey.ClearUncommittedEvents()
 
-		return err
+		return nil
 	})
-
-	return err
 }

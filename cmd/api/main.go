@@ -10,7 +10,6 @@ import (
 	"github.com/markusryoti/survey-ddd/internal/adapters/postgres"
 	"github.com/markusryoti/survey-ddd/internal/adapters/rest"
 	"github.com/markusryoti/survey-ddd/internal/application/command"
-	"github.com/markusryoti/survey-ddd/internal/domain/surveys"
 )
 
 func main() {
@@ -18,12 +17,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	surveyRepo := postgres.NewPostgresRepository[*surveys.Survey](db, "surveys")
-	_ = postgres.NewPostgresRepository[*surveys.SurveyResponse](db, "responses")
 
 	transactional := postgres.NewPostgresTransactionalProvider(db)
 
-	surveyCommandHandler := command.NewSurveyCommandHandler[*surveys.Survey](surveyRepo, transactional)
+	surveyCommandHandler := command.NewSurveyCommandHandler(transactional)
 
 	surveyHandler := rest.SurveyHandler{
 		CommandHandler: surveyCommandHandler,

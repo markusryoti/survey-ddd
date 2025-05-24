@@ -9,20 +9,17 @@ import (
 )
 
 type SurveyService struct {
-	surveyRepo   core.Repository[*surveys.Survey]
-	responseRepo core.Repository[*surveys.SurveyResponse]
-	txProvider   core.TransactionProvider
+	repo       core.Repository
+	txProvider core.TransactionProvider
 }
 
 func NewSurveyService(
-	surveyRepo core.Repository[*surveys.Survey],
-	responseRepo core.Repository[*surveys.SurveyResponse],
+	repo core.Repository,
 	txProvider core.TransactionProvider,
 ) *SurveyService {
 	return &SurveyService{
-		surveyRepo:   surveyRepo,
-		responseRepo: responseRepo,
-		txProvider:   txProvider,
+		repo:       repo,
+		txProvider: txProvider,
 	}
 }
 
@@ -31,7 +28,7 @@ type ResponseToSurveyCmd struct {
 }
 
 func (s *SurveyService) AddResponseToQuestion(ctx context.Context, cmd ResponseToSurveyCmd) error {
-	err := s.txProvider.RunTransactional(ctx, func(tx core.Transaction) error {
+	err := s.txProvider.RunTransactional(ctx, func(repo core.Repository) error {
 		surveyId, err := surveys.SurveyIdFromString(cmd.SurveyId)
 		if err != nil {
 			return err
@@ -41,7 +38,7 @@ func (s *SurveyService) AddResponseToQuestion(ctx context.Context, cmd ResponseT
 
 		survey := new(surveys.Survey)
 
-		err = s.surveyRepo.LoadWithTx(ctx, tx, core.AggregateId(surveyId), survey)
+		err = s.repo.Load(ctx, core.AggregateId(surveyId), survey)
 		if err != nil {
 			return err
 		}
@@ -51,12 +48,12 @@ func (s *SurveyService) AddResponseToQuestion(ctx context.Context, cmd ResponseT
 			return err
 		}
 
-		err = s.responseRepo.SaveWithTx(ctx, tx, response)
+		err = s.repo.Save(ctx, response)
 		if err != nil {
 			return err
 		}
 
-		err = s.surveyRepo.SaveWithTx(ctx, tx, survey)
+		err = s.repo.Save(ctx, survey)
 		if err != nil {
 			return err
 		}

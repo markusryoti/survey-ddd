@@ -18,19 +18,12 @@ services:
       timeout: 5s
       retries: 10
 
-  rabbitmq:
-    image: rabbitmq:3-management
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-
   app:
     build: .
     ports:
       - "8080:8080"
     depends_on:
       - db
-      - rabbitmq
 
   pgadmin:
     image: dpage/pgadmin4

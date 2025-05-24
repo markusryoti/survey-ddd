@@ -17,10 +17,6 @@ func NewPostgresTransactionalProvider(db *sql.DB) *PostgresTransactionalProvider
 	}
 }
 
-type PostgresTx struct {
-	tx *sql.Tx
-}
-
 func (p *PostgresTransactionalProvider) RunTransactional(ctx context.Context, fn core.TransactionalSignature) error {
 	var err error
 	var tx *sql.Tx
@@ -39,7 +35,7 @@ func (p *PostgresTransactionalProvider) RunTransactional(ctx context.Context, fn
 		}
 	}()
 
-	t := &PostgresTx{tx: tx}
+	t := NewPostgresRepository(tx)
 
 	err = fn(t)
 	if err != nil {

@@ -110,6 +110,14 @@ func (s Survey) CreatedAt() time.Time {
 	return s.TimeCreated
 }
 
+func (s Survey) Name() string {
+	return "survey"
+}
+
+func (s Survey) TableName() string {
+	return "surveys"
+}
+
 type SurveyStatus string
 
 const (

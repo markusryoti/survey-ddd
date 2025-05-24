@@ -12,9 +12,8 @@ import (
 
 func TestCreateSurvey(t *testing.T) {
 	t.Run("can create a survey", func(t *testing.T) {
-		repo := newSurveyMockRepo[*surveys.Survey]()
 		transctional := newMockTransactionalProvider()
-		handler := command.NewSurveyCommandHandler[*surveys.Survey](repo, transctional)
+		handler := command.NewSurveyCommandHandler(transctional)
 
 		description := "survey description"
 
@@ -31,9 +30,8 @@ func TestCreateSurvey(t *testing.T) {
 func TestSetMaxParticipants(t *testing.T) {
 	t.Run("can create a survey", func(t *testing.T) {
 		ctx := context.Background()
-		repo := newSurveyMockRepo[*surveys.Survey]()
 		transctional := newMockTransactionalProvider()
-		handler := command.NewSurveyCommandHandler[*surveys.Survey](repo, transctional)
+		handler := command.NewSurveyCommandHandler(transctional)
 
 		description := "survey description"
 
@@ -51,27 +49,19 @@ func TestSetMaxParticipants(t *testing.T) {
 	})
 }
 
-type mockRepo[T core.Aggregate] struct {
+type mockRepo struct {
 }
 
-func newSurveyMockRepo[T core.Aggregate]() *mockRepo[T] {
-	return &mockRepo[T]{}
+func newMockRepo() *mockRepo {
+	return &mockRepo{}
 }
 
-func (r *mockRepo[T]) Load(ctx context.Context, id core.AggregateId, aggregate T) error {
+func (r *mockRepo) Load(ctx context.Context, id core.AggregateId, aggregate core.Aggregate) error {
 	return nil
 }
 
-func (r *mockRepo[T]) Save(ctx context.Context, aggregate T) error {
+func (r *mockRepo) Save(ctx context.Context, aggregate core.Aggregate) error {
 
-	return nil
-}
-
-func (r *mockRepo[T]) SaveWithTx(ctx context.Context, tx core.Transaction, aggregate T) error {
-	return nil
-}
-
-func (r *mockRepo[T]) LoadWithTx(ctx context.Context, tx core.Transaction, id core.AggregateId, aggregate T) error {
 	return nil
 }
 

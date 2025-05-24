@@ -39,9 +39,15 @@ func (h SurveyHandler) CreateSurvey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.TenantId == "" {
+		http.Error(w, "missing required fields", http.StatusBadRequest)
+		return
+	}
+
 	cmd := surveys.CreateSurveyCommand{
 		Title:       req.Title,
 		Description: req.Description,
+		TenantId:    req.TenantId,
 	}
 
 	survey, err := h.CommandHandler.HandleCreateSurvey(r.Context(), cmd)
@@ -60,6 +66,7 @@ func (h SurveyHandler) CreateSurvey(w http.ResponseWriter, r *http.Request) {
 type CreateSurveyRequest struct {
 	Title       string  `json:"title"`
 	Description *string `json:"description"`
+	TenantId    string  `json:"tenantId"`
 }
 
 type QuestionInput struct {

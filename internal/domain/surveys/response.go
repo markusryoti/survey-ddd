@@ -81,6 +81,14 @@ func (s SurveyResponse) CreatedAt() time.Time {
 	return s.TimeCreated
 }
 
+func (s SurveyResponse) Name() string {
+	return "survey-response"
+}
+
+func (s SurveyResponse) TableName() string {
+	return "survey_responses"
+}
+
 type ResponseStatus string
 
 const (

@@ -23,6 +23,8 @@ type Aggregate interface {
 	SetCreatedAt(time.Time)
 	Version() int
 	CreatedAt() time.Time
+	Name() string
+	TableName() string
 }
 
 func NewAggregateId() AggregateId {

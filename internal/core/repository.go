@@ -4,17 +4,12 @@ import (
 	"context"
 )
 
-type Repository[T Aggregate] interface {
-	Save(ctx context.Context, aggregate T) error
-	SaveWithTx(ctx context.Context, tx Transaction, aggregate T) error
-	Load(ctx context.Context, id AggregateId, aggregate T) error
-	LoadWithTx(ctx context.Context, tx Transaction, id AggregateId, aggregate T) error
+type Repository interface {
+	Save(ctx context.Context, aggregate Aggregate) error
+	Load(ctx context.Context, id AggregateId, aggregate Aggregate) error
 }
 
-type Transaction interface {
-}
-
-type TransactionalSignature func(tx Transaction) error
+type TransactionalSignature func(repo Repository) error
 
 type TransactionProvider interface {
 	RunTransactional(ctx context.Context, fn TransactionalSignature) error

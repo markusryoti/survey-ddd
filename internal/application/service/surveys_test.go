@@ -14,8 +14,7 @@ func TestSubmitResponse(t *testing.T) {
 	t.Run("can submit a response to question", func(t *testing.T) {
 		ctx := context.Background()
 
-		surveyRepo := newSurveyMockRepo[*surveys.Survey]()
-		responseRepo := newSurveyMockRepo[*surveys.SurveyResponse]()
+		repo := newMockRepo()
 		transctional := newMockTransactionalProvider()
 
 		description := "survey description"
@@ -23,11 +22,11 @@ func TestSubmitResponse(t *testing.T) {
 		survey, err := surveys.NewSurvey("some title", &description, "tenant")
 		assert.Nil(t, err)
 
-		err = surveyRepo.Save(ctx, survey)
+		err = repo.Save(ctx, survey)
 		assert.Nil(t, err)
 		assert.NotEqual(t, "", survey.Id.String())
 
-		srv := service.NewSurveyService(surveyRepo, responseRepo, transctional)
+		srv := service.NewSurveyService(repo, transctional)
 
 		err = srv.AddResponseToQuestion(ctx, service.ResponseToSurveyCmd{
 			SurveyId: survey.Id.String(),
@@ -37,27 +36,19 @@ func TestSubmitResponse(t *testing.T) {
 	})
 }
 
-type mockRepo[T core.Aggregate] struct {
+type mockRepo struct {
 }
 
-func newSurveyMockRepo[T core.Aggregate]() *mockRepo[T] {
-	return &mockRepo[T]{}
+func newMockRepo() *mockRepo {
+	return &mockRepo{}
 }
 
-func (r *mockRepo[T]) Load(ctx context.Context, id core.AggregateId, aggregate T) error {
+func (r *mockRepo) Load(ctx context.Context, id core.AggregateId, aggregate core.Aggregate) error {
 	return nil
 }
 
-func (r *mockRepo[T]) Save(ctx context.Context, aggregate T) error {
+func (r *mockRepo) Save(ctx context.Context, aggregate core.Aggregate) error {
 
-	return nil
-}
-
-func (r *mockRepo[T]) SaveWithTx(ctx context.Context, tx core.Transaction, aggregate T) error {
-	return nil
-}
-
-func (r *mockRepo[T]) LoadWithTx(ctx context.Context, tx core.Transaction, id core.AggregateId, aggregate T) error {
 	return nil
 }
 
