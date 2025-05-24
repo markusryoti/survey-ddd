@@ -18,6 +18,7 @@ func TestNewSurvey(t *testing.T) {
 		assert.Equal(t, title, survey.Title)
 		assert.Equal(t, description, *survey.Description)
 		assert.Equal(t, surveys.Draft, survey.SurveyStatus)
+		assert.Len(t, survey.GetUncommittedEvents(), 1)
 	})
 
 	t.Run("can't add end time that is in the past", func(t *testing.T) {

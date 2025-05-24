@@ -49,36 +49,11 @@ type SurveyResponse struct {
 	TimeCreated       time.Time
 	Status            ResponseStatus
 
-	version           int
-	uncommittedEvents []core.DomainEvent
+	core.BaseAggregate
 }
 
 func (s SurveyResponse) ID() core.AggregateId {
 	return core.AggregateId(s.Id)
-}
-
-func (s SurveyResponse) GetUncommittedEvents() []core.DomainEvent {
-	return s.uncommittedEvents
-}
-
-func (s *SurveyResponse) ClearUncommittedEvents() {
-	s.uncommittedEvents = make([]core.DomainEvent, 0)
-}
-
-func (s *SurveyResponse) SetVersion(version int) {
-	s.version = version
-}
-
-func (s *SurveyResponse) SetCreatedAt(t time.Time) {
-	s.TimeCreated = t
-}
-
-func (s SurveyResponse) Version() int {
-	return s.version
-}
-
-func (s SurveyResponse) CreatedAt() time.Time {
-	return s.TimeCreated
 }
 
 func (s SurveyResponse) Name() string {
@@ -141,7 +116,7 @@ func (s *SurveyResponse) ApplyEvent(event core.DomainEvent) {
 	case SurveyResponseCreated:
 		s.SurveyId = e.SurveyId
 		s.NumberOfQuestions = e.NumberOfQuestions
-		s.TimeCreated = e.CreatedAt
+		s.SetCreatedAt(e.CreatedAt)
 	case QuestionAnswered:
 		s.Responses = append(s.Responses, QuestionResponse{
 			QuestionId: e.QuestionId,
@@ -155,6 +130,6 @@ func (s *SurveyResponse) ApplyEvent(event core.DomainEvent) {
 }
 
 func (s *SurveyResponse) addEvent(event core.DomainEvent) {
-	s.uncommittedEvents = append(s.uncommittedEvents, event)
+	s.AddDomainEvent(event)
 	s.ApplyEvent(event)
 }

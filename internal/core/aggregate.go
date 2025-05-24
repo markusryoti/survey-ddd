@@ -18,6 +18,7 @@ func (a AggregateId) String() string {
 type Aggregate interface {
 	ID() AggregateId
 	GetUncommittedEvents() []DomainEvent
+	AddDomainEvent(DomainEvent)
 	ClearUncommittedEvents()
 	SetVersion(int)
 	SetCreatedAt(time.Time)
@@ -25,6 +26,40 @@ type Aggregate interface {
 	CreatedAt() time.Time
 	Name() string
 	TableName() string
+}
+
+type BaseAggregate struct {
+	version           int
+	createdAt         time.Time
+	uncommittedEvents []DomainEvent
+}
+
+func (b BaseAggregate) GetUncommittedEvents() []DomainEvent {
+	return b.uncommittedEvents
+}
+
+func (b *BaseAggregate) AddDomainEvent(e DomainEvent) {
+	b.uncommittedEvents = append(b.uncommittedEvents, e)
+}
+
+func (b *BaseAggregate) ClearUncommittedEvents() {
+	b.uncommittedEvents = make([]DomainEvent, 0)
+}
+
+func (b *BaseAggregate) SetVersion(version int) {
+	b.version = version
+}
+
+func (b *BaseAggregate) SetCreatedAt(t time.Time) {
+	b.createdAt = t
+}
+
+func (b BaseAggregate) Version() int {
+	return b.version
+}
+
+func (b BaseAggregate) CreatedAt() time.Time {
+	return b.createdAt
 }
 
 func NewAggregateId() AggregateId {
