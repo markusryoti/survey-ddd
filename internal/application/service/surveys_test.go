@@ -59,6 +59,6 @@ func newMockTransactionalProvider() *mockTransactionalProvider {
 	return &mockTransactionalProvider{}
 }
 
-func (t *mockTransactionalProvider) RunTransactional(ctx context.Context, fn core.TransactionalSignature) error {
+func (t *mockTransactionalProvider) RunTransactional(ctx context.Context, fn core.TransactionSignature) error {
 	return nil
 }

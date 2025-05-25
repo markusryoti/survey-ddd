@@ -25,7 +25,7 @@ func (h SurveyHandler) RegisterRoutes(r chi.Router) {
 func (h SurveyHandler) index(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
+	_ = h.writeJson(w, map[string]string{
 		"hello": "world",
 	})
 }

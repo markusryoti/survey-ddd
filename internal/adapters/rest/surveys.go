@@ -38,8 +38,8 @@ func (h SurveyHandler) CreateSurvey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	h.writeJson(w, map[string]string{
-		"survey_id": survey.Id.String(),
+	_ = h.writeJson(w, map[string]string{
+		"surveyId": survey.Id.String(),
 	})
 }
 
@@ -57,7 +57,7 @@ func (h SurveyHandler) GetSurvey(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	h.writeJson(w, survey)
+	_ = h.writeJson(w, survey)
 }
 
 type AddQuestionRequest struct {

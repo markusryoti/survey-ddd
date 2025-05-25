@@ -17,7 +17,7 @@ func NewPostgresTransactionalProvider(db *sql.DB) *PostgresTransactionalProvider
 	}
 }
 
-func (p *PostgresTransactionalProvider) RunTransactional(ctx context.Context, fn core.TransactionalSignature) error {
+func (p *PostgresTransactionalProvider) RunTransactional(ctx context.Context, fn core.TransactionSignature) error {
 	var err error
 	var tx *sql.Tx
 

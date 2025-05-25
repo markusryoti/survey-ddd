@@ -120,6 +120,9 @@ func (r *PostgresRepository) Load(ctx context.Context, id core.AggregateId, agg 
 		fmt.Sprintf(`SELECT data, version, created_at FROM %s WHERE id = $1`, agg.TableName()),
 		id,
 	).Scan(&data, &version, &createdAt)
+	if err != nil {
+		return err
+	}
 
 	err = json.Unmarshal(data, agg)
 	if err != nil {

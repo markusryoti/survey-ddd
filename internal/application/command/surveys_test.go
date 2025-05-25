@@ -35,12 +35,12 @@ func TestSetMaxParticipants(t *testing.T) {
 
 		description := "survey description"
 
-		survey, err := handler.CreateSurvey(ctx, surveys.CreateSurveyCommand{
+		survey, _ := handler.CreateSurvey(ctx, surveys.CreateSurveyCommand{
 			Title:       "survey title",
 			Description: &description,
 		})
 
-		err = handler.SetMaxParticipants(ctx, surveys.SetMaxParticipantsCommand{
+		err := handler.SetMaxParticipants(ctx, surveys.SetMaxParticipantsCommand{
 			SurveyId:        survey.Id.String(),
 			MaxParticipants: 3,
 		})
@@ -56,35 +56,19 @@ func TestSetMaxParticipants(t *testing.T) {
 		title := "some title"
 		description := "some description"
 
-		survey, err := handler.CreateSurvey(ctx, surveys.CreateSurveyCommand{
+		survey, _ := handler.CreateSurvey(ctx, surveys.CreateSurveyCommand{
 			Title:       title,
 			Description: &description,
 		})
 
 		questionDescription := "question description"
 
-		err = handler.AddQuestion(ctx, surveys.AddQuestionCommand{
+		err := handler.AddQuestion(ctx, surveys.AddQuestionCommand{
 			SurveyId: survey.Id.String(),
 			Title:    "some question", Description: &questionDescription, AllowMultiple: false, QuestionOptions: []string{"a", "b"},
 		})
 		assert.Nil(t, err)
 	})
-}
-
-type mockRepo struct {
-}
-
-func newMockRepo() *mockRepo {
-	return &mockRepo{}
-}
-
-func (r *mockRepo) Load(ctx context.Context, id core.AggregateId, aggregate core.Aggregate) error {
-	return nil
-}
-
-func (r *mockRepo) Save(ctx context.Context, aggregate core.Aggregate) error {
-
-	return nil
 }
 
 type mockTransactionalProvider struct {
@@ -94,6 +78,6 @@ func newMockTransactionalProvider() *mockTransactionalProvider {
 	return &mockTransactionalProvider{}
 }
 
-func (t *mockTransactionalProvider) RunTransactional(ctx context.Context, fn core.TransactionalSignature) error {
+func (t *mockTransactionalProvider) RunTransactional(ctx context.Context, fn core.TransactionSignature) error {
 	return nil
 }

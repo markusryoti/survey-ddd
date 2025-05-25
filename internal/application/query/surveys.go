@@ -8,12 +8,12 @@ import (
 )
 
 type QueryHandler struct {
-	txProvider core.TransactionProvider
+	tx core.TransactionProvider
 }
 
 func NewQueryHandler(transactional core.TransactionProvider) *QueryHandler {
 	return &QueryHandler{
-		txProvider: transactional,
+		tx: transactional,
 	}
 }
 
@@ -21,8 +21,11 @@ func (q *QueryHandler) GetSurvey(ctx context.Context, id string) (surveys.Survey
 	survey := new(surveys.Survey)
 
 	surveyId, err := surveys.SurveyIdFromString(id)
+	if err != nil {
+		return *survey, err
+	}
 
-	err = q.txProvider.RunTransactional(ctx, func(repo core.Repository) error {
+	err = q.tx.RunTransactional(ctx, func(repo core.Repository) error {
 		return repo.Load(ctx, core.AggregateId(surveyId), survey)
 	})
 

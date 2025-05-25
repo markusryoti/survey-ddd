@@ -9,8 +9,8 @@ type Repository interface {
 	Load(ctx context.Context, id AggregateId, aggregate Aggregate) error
 }
 
-type TransactionalSignature func(repo Repository) error
+type TransactionSignature func(repo Repository) error
 
 type TransactionProvider interface {
-	RunTransactional(ctx context.Context, fn TransactionalSignature) error
+	RunTransactional(ctx context.Context, fn TransactionSignature) error
 }

@@ -28,7 +28,7 @@ func (id SurveyResponseId) Value() (driver.Value, error) {
 	return core.AggregateId(id).Value()
 }
 
-func (id *SurveyResponseId) Scan(value interface{}) error {
+func (id *SurveyResponseId) Scan(value any) error {
 	return (*core.AggregateId)(id).Scan(value)
 }
 

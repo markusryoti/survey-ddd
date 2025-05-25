@@ -8,14 +8,14 @@ import (
 )
 
 type CommandHandler struct {
-	txProvider core.TransactionProvider
+	tx core.TransactionProvider
 }
 
 func NewCommandHandler(
 	txProvider core.TransactionProvider,
 ) *CommandHandler {
 	return &CommandHandler{
-		txProvider: txProvider,
+		tx: txProvider,
 	}
 }
 
@@ -24,7 +24,9 @@ func (h *CommandHandler) CreateSurvey(ctx context.Context, cmd surveys.CreateSur
 
 	survey := new(surveys.Survey)
 
-	err = h.txProvider.RunTransactional(ctx, func(repo core.Repository) error {
+	err = h.tx.RunTransactional(ctx, func(repo core.Repository) error {
+		defer survey.ClearUncommittedEvents()
+
 		survey, err = surveys.NewSurvey(cmd.Title, cmd.Description, cmd.TenantId)
 		if err != nil {
 			return err
@@ -34,8 +36,6 @@ func (h *CommandHandler) CreateSurvey(ctx context.Context, cmd surveys.CreateSur
 		if err != nil {
 			return err
 		}
-
-		survey.ClearUncommittedEvents()
 
 		return err
 	})
@@ -49,8 +49,10 @@ func (h *CommandHandler) SetMaxParticipants(ctx context.Context, cmd surveys.Set
 		return err
 	}
 
-	return h.txProvider.RunTransactional(ctx, func(repo core.Repository) error {
+	return h.tx.RunTransactional(ctx, func(repo core.Repository) error {
 		survey := new(surveys.Survey)
+
+		defer survey.ClearUncommittedEvents()
 
 		err = repo.Load(ctx, core.AggregateId(surveyId), survey)
 		if err != nil {
@@ -67,8 +69,6 @@ func (h *CommandHandler) SetMaxParticipants(ctx context.Context, cmd surveys.Set
 			return err
 		}
 
-		survey.ClearUncommittedEvents()
-
 		return nil
 	})
 }
@@ -84,8 +84,10 @@ func (h *CommandHandler) AddQuestion(ctx context.Context, cmd surveys.AddQuestio
 		return err
 	}
 
-	return h.txProvider.RunTransactional(ctx, func(repo core.Repository) error {
+	return h.tx.RunTransactional(ctx, func(repo core.Repository) error {
 		survey := new(surveys.Survey)
+
+		defer survey.ClearUncommittedEvents()
 
 		err := repo.Load(ctx, core.AggregateId(surveyId), survey)
 		if err != nil {
@@ -98,8 +100,6 @@ func (h *CommandHandler) AddQuestion(ctx context.Context, cmd surveys.AddQuestio
 		if err != nil {
 			return err
 		}
-
-		survey.ClearUncommittedEvents()
 
 		return nil
 	})
