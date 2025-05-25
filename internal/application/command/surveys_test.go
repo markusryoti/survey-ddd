@@ -17,7 +17,7 @@ func TestCreateSurvey(t *testing.T) {
 
 		description := "survey description"
 
-		survey, err := handler.HandleCreateSurvey(context.Background(), surveys.CreateSurveyCommand{
+		survey, err := handler.CreateSurvey(context.Background(), surveys.CreateSurveyCommand{
 			Title:       "survey title",
 			Description: &description,
 		})
@@ -35,16 +35,38 @@ func TestSetMaxParticipants(t *testing.T) {
 
 		description := "survey description"
 
-		survey, err := handler.HandleCreateSurvey(ctx, surveys.CreateSurveyCommand{
+		survey, err := handler.CreateSurvey(ctx, surveys.CreateSurveyCommand{
 			Title:       "survey title",
 			Description: &description,
 		})
 
-		err = handler.HandleSetMaxParticipants(ctx, surveys.SetMaxParticipantsCommand{
+		err = handler.SetMaxParticipants(ctx, surveys.SetMaxParticipantsCommand{
 			SurveyId:        survey.Id.String(),
 			MaxParticipants: 3,
 		})
 
+		assert.Nil(t, err)
+	})
+
+	t.Run("can add a question", func(t *testing.T) {
+		ctx := context.Background()
+		transctional := newMockTransactionalProvider()
+		handler := command.NewCommandHandler(transctional)
+
+		title := "some title"
+		description := "some description"
+
+		survey, err := handler.CreateSurvey(ctx, surveys.CreateSurveyCommand{
+			Title:       title,
+			Description: &description,
+		})
+
+		questionDescription := "question description"
+
+		err = handler.AddQuestion(ctx, surveys.AddQuestionCommand{
+			SurveyId: survey.Id.String(),
+			Title:    "some question", Description: &questionDescription, AllowMultiple: false, QuestionOptions: []string{"a", "b"},
+		})
 		assert.Nil(t, err)
 	})
 }

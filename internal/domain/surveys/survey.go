@@ -300,13 +300,13 @@ func (s Survey) AnswersReceived() int {
 	return len(s.SubmissionTimes)
 }
 
-func NewQuestion(title string, description string, options []string, allowMultiple bool) (*Question, error) {
+func NewQuestion(title string, description string, options []string, allowMultiple bool) (Question, error) {
 	if title == "" {
-		return nil, errors.New("title cannot be empty")
+		return Question{}, errors.New("title cannot be empty")
 	}
 
 	if len(options) < 2 {
-		return nil, errors.New("each options needs minimum of two options")
+		return Question{}, errors.New("each options needs minimum of two options")
 	}
 
 	opts := make([]QuestionOption, 0)
@@ -324,7 +324,7 @@ func NewQuestion(title string, description string, options []string, allowMultip
 		qt = Single
 	}
 
-	return &Question{
+	return Question{
 		Id:              QuestionId(uuid.New().String()),
 		Title:           title,
 		Description:     &description,
@@ -335,6 +335,7 @@ func NewQuestion(title string, description string, options []string, allowMultip
 
 func NewQuestionOption(value string) *QuestionOption {
 	return &QuestionOption{
+		Id:    QuestionOptionId(uuid.New().String()),
 		Value: value,
 	}
 }

@@ -19,7 +19,7 @@ func NewCommandHandler(
 	}
 }
 
-func (h *CommandHandler) HandleCreateSurvey(ctx context.Context, cmd surveys.CreateSurveyCommand) (*surveys.Survey, error) {
+func (h *CommandHandler) CreateSurvey(ctx context.Context, cmd surveys.CreateSurveyCommand) (*surveys.Survey, error) {
 	var err error
 
 	survey := new(surveys.Survey)
@@ -43,7 +43,7 @@ func (h *CommandHandler) HandleCreateSurvey(ctx context.Context, cmd surveys.Cre
 	return survey, err
 }
 
-func (h *CommandHandler) HandleSetMaxParticipants(ctx context.Context, cmd surveys.SetMaxParticipantsCommand) error {
+func (h *CommandHandler) SetMaxParticipants(ctx context.Context, cmd surveys.SetMaxParticipantsCommand) error {
 	surveyId, err := surveys.SurveyIdFromString(cmd.SurveyId)
 	if err != nil {
 		return err
@@ -92,7 +92,7 @@ func (h *CommandHandler) AddQuestion(ctx context.Context, cmd surveys.AddQuestio
 			return err
 		}
 
-		survey.AddQuestion(*q)
+		survey.AddQuestion(q)
 
 		err = repo.Save(ctx, survey)
 		if err != nil {

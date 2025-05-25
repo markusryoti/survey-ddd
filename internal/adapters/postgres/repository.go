@@ -26,7 +26,10 @@ func (r *PostgresRepository) Save(ctx context.Context, aggregate core.Aggregate)
 		return err
 	}
 
-	if aggregate.Version() == 0 {
+	currentVersion := aggregate.Version()
+	newVersion := currentVersion + 1
+
+	if currentVersion == 0 {
 		// New aggregate: INSERT
 		_, err = r.tx.ExecContext(ctx,
 			fmt.Sprintf(`INSERT INTO %s (id, data, version, created_at)
@@ -46,9 +49,9 @@ func (r *PostgresRepository) Save(ctx context.Context, aggregate core.Aggregate)
                          SET data = $1, version = $2
                          WHERE id = $3 AND version = $4`, aggregate.TableName()),
 			data,
-			aggregate.Version(), // e.g., version 2
+			newVersion, // e.g., version 2
 			uuid.UUID(aggregate.ID()),
-			aggregate.Version()-1, // e.g., expecting version 1 in DB
+			currentVersion, // e.g., expecting version 1
 		)
 		if err != nil {
 			return fmt.Errorf("update failed: %w", err)
@@ -64,16 +67,16 @@ func (r *PostgresRepository) Save(ctx context.Context, aggregate core.Aggregate)
 	}
 
 	events := aggregate.GetUncommittedEvents()
-	nextVersion := aggregate.Version() - len(events) + 1
+	baseVersion := currentVersion
 
-	for _, event := range events {
-		// Serialize event
+	for i, event := range events {
 		eventData, err := json.Marshal(event)
 		if err != nil {
 			return fmt.Errorf("failed to marshal event: %w", err)
 		}
 
-		// Insert into event store
+		version := baseVersion + i + 1
+
 		_, err = r.tx.ExecContext(ctx, `
             INSERT INTO events (aggregate_id, aggregate_name, event_type, payload, occurred_at, version)
             VALUES ($1, $2, $3, $4, $5, $6)
@@ -82,8 +85,8 @@ func (r *PostgresRepository) Save(ctx context.Context, aggregate core.Aggregate)
 			aggregate.Name(),
 			event.Type(),
 			eventData,
-			time.Now(),
-			nextVersion,
+			event.OccurredAt(),
+			version,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to insert event: %w", err)
@@ -98,13 +101,11 @@ func (r *PostgresRepository) Save(ctx context.Context, aggregate core.Aggregate)
 			event.Type(),
 			eventData,
 			time.Now(),
-			"pending", // or whatever your initial status is
+			"pending",
 		)
 		if err != nil {
 			return fmt.Errorf("failed to insert outbox entry: %w", err)
 		}
-
-		nextVersion++
 	}
 
 	return nil
